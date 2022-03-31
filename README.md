@@ -1,5 +1,5 @@
 # ERC721s
-Improvement to `ERC721`, that introduces lockable NFTs. Locked asset can be used in any ways except selling/transferring it.
+Improvement to the `ERC721` standard, that introduces lockable NFTs. Locked asset can be used in any way except selling/transferring it.
 
 ## Abstract
 NFTs took the world by storm. It's probably because non-fungibility as a concept is much easier to intuitively uderstand, than fungibility, as our world is mostly non-fungible.
