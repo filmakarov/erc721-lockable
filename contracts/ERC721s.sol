@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity >=0.8.0;
 
-/// @notice Modern, minimalist, and gas efficient ERC-721 implementation.
-/// @author Solmate (https://github.com/Rari-Capital/solmate/blob/main/src/tokens/ERC721.sol)
-/// @dev Note that balanceOf does not revert if passed the zero address, in defiance of the ERC.
+/// @title ERC721s
+/// @notice Improvement to ERC721 standard, that introduces lockable NFTs. 
+/// @notice Based on Solmate (https://github.com/Rari-Capital/solmate/blob/main/src/tokens/ERC721.sol)
+/// @author filio.eth (https://twitter.com/filmakarov)
+
 abstract contract ERC721s {
     /*///////////////////////////////////////////////////////////////
                                  EVENTS
@@ -151,6 +153,10 @@ abstract contract ERC721s {
         );
     }
 
+    function _exists(uint256 id) internal view returns (bool) {
+        return id < totalSupply;
+    }
+
     /*///////////////////////////////////////////////////////////////
                               CUSTOM OwnerOf FOR BATCH MINTING
     //////////////////////////////////////////////////////////////*/
@@ -179,10 +185,6 @@ abstract contract ERC721s {
 
     function _unlock(uint256 id) internal virtual {
         getLocked[id] = address(0);
-    }
-
-    function _exists(uint256 id) internal view returns (bool) {
-        return id < totalSupply;
     }
 
     /*///////////////////////////////////////////////////////////////

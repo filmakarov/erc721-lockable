@@ -3,12 +3,14 @@ pragma solidity ^0.8.11;
 
 import "@openzeppelin/contracts/utils/Strings.sol";
 
-/// @title Mock Erc721s NFT featuring EIP2612 like logic for gasless listings
+/// @title Mock Locker Contract
 /// @author Fil Makarov (@filmakarov)
 
 interface IMockNFT { 
     function permitLock(address signer, address locker, uint256 tokenId, uint256 deadline, bytes memory sig, address unlocker) external;
     function safeTransferFrom(address from, address to, uint256 id, bytes memory data) external;
+    function unlock(uint256 tokenId) external;
+    function ownerOf(uint256 tokenId) external returns (address);
 }
 
 contract MockLockerContract {  
@@ -20,6 +22,7 @@ using Strings for uint256;
     //////////////////////////////////////////////////////////////*/
 
     IMockNFT private mockNFT;
+    mapping(uint256 => address) prevHolders;
 
     /*///////////////////////////////////////////////////////////////
                               CONSTRUCTOR
@@ -52,10 +55,15 @@ using Strings for uint256;
                 sig,
                 address(this)
             );
-
             //transferFrom
             mockNFT.safeTransferFrom(signer, to, tokenId, "");
+            //keep prev holder
+            prevHolders[tokenId] = signer;
+    }
 
+    function unlockAndTransferBack(uint256 tokenId) public {
+        mockNFT.unlock(tokenId);
+        mockNFT.safeTransferFrom(mockNFT.ownerOf(tokenId), prevHolders[tokenId], tokenId, "");
     }
 
 }

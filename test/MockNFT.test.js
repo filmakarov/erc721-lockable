@@ -18,6 +18,7 @@ describe('Mock ERC721s NFT tests', () => {
   const mybase = "https://mybase.com/json/";
 
 async function sign(locker, tokenId, nonce, deadline, signer) {
+  //inspired by @dievardump's implementation
   const typedData = {
       types: {
           Permit: [
@@ -42,7 +43,6 @@ async function sign(locker, tokenId, nonce, deadline, signer) {
       },
   };
 
-  // sign Permit
   const signature = await signer._signTypedData(
       typedData.domain,
       { Permit: typedData.types.Permit },
@@ -78,7 +78,7 @@ async function sign(locker, tokenId, nonce, deadline, signer) {
 
     /*  ====== ====== ====== ====== ====== ======
     *   
-    *   LOCKING TESTS
+    *   LOCKING AND UNLOCKING TESTS
     * 
     * ====== ====== ====== ====== ======  ====== */
 
@@ -258,13 +258,6 @@ async function sign(locker, tokenId, nonce, deadline, signer) {
       });
       
   });
-
-   
-  /*  ====== ====== ====== ====== ====== ======
-  *   
-  *   TIER 1 TESTS
-  * 
-  * ====== ====== ====== ====== ======  ====== */
 
 
 });
