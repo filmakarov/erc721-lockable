@@ -66,15 +66,6 @@ using Strings for uint256;
         _safeMint(to, qty); 
     }
 
-    function mintLocked(address to, uint256 qty, address unlocker) public {
-        // require minting authorization here
-        require(totalSupply + qty <= MAX_ITEMS, ">MaxSupply");
-        _safeMint(to, qty); //first mint
-        for (uint256 i=1; i<=qty; i++) { 
-            _lock(unlocker, totalSupply-i); //then immediately lock
-        } 
-    }
-
      /*///////////////////////////////////////////////////////////////
                        LOCKING LOGIC
     //////////////////////////////////////////////////////////////*/
