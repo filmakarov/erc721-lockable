@@ -21,7 +21,7 @@ async function sign(signer, spender, nonce, deadline, signers) {
   //inspired by @dievardump's implementation
   const typedData = {
       types: {
-          Permit: [
+          PermitAll: [
               { name: 'signer', type: 'address' },
               { name: 'spender', type: 'address' },
               { name: 'nonce', type: 'uint256' },
@@ -45,7 +45,7 @@ async function sign(signer, spender, nonce, deadline, signers) {
 
   const signature = await signers._signTypedData(
       typedData.domain,
-      { Permit: typedData.types.Permit },
+      { PermitAll: typedData.types.PermitAll },
       typedData.message,
   );
 
@@ -157,24 +157,23 @@ async function sign(signer, spender, nonce, deadline, signers) {
         await nftContract.connect(holder).mint(await holder.getAddress(), 3);
         let testedTokenId = (await nftContract.totalSupply()) - 1;
         
-        const deadline = parseInt(+new Date() / 1000) + 7 * 24 * 60 * 60;
-
-            const signature = await sign(
-                await holder.getAddress(),
-                await locker.getAddress(),
-                await nftContract.noncesForAll(await holder.getAddress(), await locker.getAddress()),
-                deadline,
-                holder
-            );
+        const deadline = parseInt(+new Date() / 1000) + 7 * 24 * 60 * 60; 
+        const signature = await sign(
+          await holder.getAddress(),
+          await locker.getAddress(),
+          await nftContract.noncesForAll(await holder.getAddress(), await locker.getAddress()),
+          deadline,
+          holder
+        );
             
 
-            expect(await nftContract.getApproved(testedTokenId)).to.be.equal(ADDRESS_ZERO);
+        expect(await nftContract.isApprovedForAll(await holder.getAddress(), await locker.getAddress())).to.be.equal(false);
 
-            await nftContract
-                .connect(locker)
-                .permitAll(await holder.getAddress(), await locker.getAddress(), deadline, signature);
+        await nftContract
+          .connect(locker)
+          .permitAll(await holder.getAddress(), await locker.getAddress(), deadline, signature);
 
-        expect(await nftContract.getApproved(testedTokenId)).to.be.equal(await unlocker.getAddress());
+          expect(await nftContract.isApprovedForAll(await holder.getAddress(), await locker.getAddress())).to.be.equal(true);
       });
 
       it.skip('Permit by a non holder does not work', async function () {
@@ -186,6 +185,7 @@ async function sign(signer, spender, nonce, deadline, signers) {
 
             // sign Permit for locker but from non holder
             const signature = await sign(
+                await holder.getAddress(),
                 await locker.getAddress(),
                 testedTokenId,
                 await nftContract.lockingNonces(testedTokenId),
