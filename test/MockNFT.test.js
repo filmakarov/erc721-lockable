@@ -85,7 +85,7 @@ async function signPermit(spender, tokenId, nonce, deadline, signer) {
   return signature;
 }
 
-async function signApprove(signer, spender, nonce, deadline, holder) {
+async function signPermitAll(signer, spender, nonce, deadline, holder) {
   const typedData = {
       types: {
           PermitAll: [
@@ -252,7 +252,7 @@ async function signApprove(signer, spender, nonce, deadline, holder) {
         await nftContract.connect(holder).mint(await holder.getAddress(), 3);
         
         const deadline = parseInt(+new Date() / 1000) + 7 * 24 * 60 * 60; 
-        const signature = await signApprove(
+        const signature = await signPermitAll(
           await holder.getAddress(),
           await locker.getAddress(),
           await nftContract.noncesForAll(await holder.getAddress(), await locker.getAddress()),
@@ -274,7 +274,7 @@ async function signApprove(signer, spender, nonce, deadline, holder) {
         await nftContract.connect(holder).mint(await holder.getAddress(), 3);
         
         const deadline = parseInt(+new Date() / 1000) + 7 * 24 * 60 * 60; 
-        const signature = await signApprove(
+        const signature = await signPermitAll(
           await holder.getAddress(),
           await locker.getAddress(),
           await nftContract.noncesForAll(await holder.getAddress(), await locker.getAddress()),
@@ -296,7 +296,7 @@ async function signApprove(signer, spender, nonce, deadline, holder) {
         await nftContract.connect(holder).mint(await holder.getAddress(), 3);
         
         const deadline = parseInt(+new Date() / 1000); 
-        const signature = await signApprove(
+        const signature = await signPermitAll(
           await holder.getAddress(),
           await locker.getAddress(),
           await nftContract.noncesForAll(await holder.getAddress(), await locker.getAddress()),
@@ -366,7 +366,7 @@ async function signApprove(signer, spender, nonce, deadline, holder) {
         ).to.be.revertedWith('INVALID_SIGNER');
       });
 
-      it('Mocking signer does not work for permitLock', async function () {
+      it('Mocking signer does not work for permit lock', async function () {
         //mint token
         await nftContract.connect(holder).mint(await holder.getAddress(), 3);
         let testedTokenId = (await nftContract.totalSupply()) - 1;
