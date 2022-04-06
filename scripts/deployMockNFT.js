@@ -1,5 +1,5 @@
 // $ npx hardhat run scripts/04_deploy_ERC721Mint.js --network rinkeby
-const networks = hre.network.name;
+const network = hre.network.name;
 const fs = require('fs');
 
 async function main() {
@@ -9,7 +9,7 @@ async function main() {
   const MockNFTInstance = await ethers.getContractFactory('MockNFT');
   const MockNFT = await MockNFTInstance.deploy(process.env.NFT_URI);
 
-  console.log('Network', networks);
+  console.log('Network', network);
   console.log('Deploying contracts with the account:', deployer.address);
   console.log('Account balance:', (await deployer.getBalance()).toString());
 
@@ -22,13 +22,9 @@ async function main() {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
-  const fileName = 'MockNFT_' + `${networks}.json`;
+  const fileName = 'MockNFT_' + `${network}.json`;
 
   await fs.writeFileSync(dir + fileName, data, { encoding: 'utf8' });
-
-  const network = await ethers.getDefaultProvider().getNetwork();
-  console.log(network);
-
 }
 
 main()

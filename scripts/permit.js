@@ -1,14 +1,13 @@
 var Web3 = require('web3');
 const { ethers } = require("hardhat");
 
-
 const SECOND = 1000;
-var web3 = new Web3("https://goerli.infura.io/v3/7e8450f38dce45ec88ecff6d8bb99d4e");
+var web3 = new Web3("https://rinkeby.infura.io/v3/7e8450f38dce45ec88ecff6d8bb99d4e");
 
-const fromAddress = "0x9EE5e175D09895b8E1E28c22b961345e1dF4B5aE";
+const fromAddress = process.env.SIGNER;
 const expiry = Math.trunc((Date.now() + 120 * SECOND) / SECOND);
 const nonce = 0;
-const spender = "0xE1B48CddD97Fa4b2F960Ca52A66CeF8f1f8A58A5";
+const spender = process.env.SPENDER;
 
   
     const typedData = JSON.stringify({
@@ -42,8 +41,8 @@ const spender = "0xE1B48CddD97Fa4b2F960Ca52A66CeF8f1f8A58A5";
       domain: {
         name: "MockNFT",
         version: '1',
-        chainId: "5",
-        verifyingContract: "0x40B1736E0d8E4780Ceb414b65eE4BA3128c87d1d"
+        chainId: "4",
+        verifyingContract: "0x356D9A6a699B5C2F080FFbA653683D1efF5a79af"
       },
       message: {
         signer: fromAddress,

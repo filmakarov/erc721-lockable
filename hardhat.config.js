@@ -11,7 +11,7 @@
  require('web3-utils');
  require('web3');
  
- const { alchemyApiKeyRinkeby, alchemyApiKeyMain, privkey, etherScanApiKey } = require('./secrets.json');
+ const {alchemyApiKeyMain} = require('./secrets.json');
  
 module.exports = {
   solidity: "0.8.11",
@@ -20,7 +20,7 @@ module.exports = {
       url: process.env.RPC_NODE_URL_RINKEBY,
       gasPrice: 5000000000, //5 gwei
       timeout: 3600000,
-      accounts: [`0x${privkey}`]
+      accounts: [process.env.PRIVATE_KEY]
     },
     goerli: {
       url: process.env.RPC_NODE_URL_GOERLI,
@@ -38,7 +38,7 @@ module.exports = {
     mainnet: {
       url: `https://eth-mainnet.alchemyapi.io/v2/${alchemyApiKeyMain}`,
       gasPrice: 100000000000, //100 gwei
-      accounts: [`0x${privkey}`]
+      accounts: [process.env.PRIVATE_KEY]
     }
   },
   etherscan: {
