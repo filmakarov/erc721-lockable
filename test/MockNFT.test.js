@@ -29,7 +29,7 @@ async function signPermitLock(locker, tokenId, nonce, deadline, signer) {
     },
     primaryType: 'Permit',
     domain: {
-        name: await nftContract.name(),
+        name: "MockNFT",
         version: '1',
         chainId: chainId,
         verifyingContract: nftContract.address,
