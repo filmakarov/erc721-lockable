@@ -1,4 +1,3 @@
-// $ npx hardhat run scripts/04_deploy_ERC721Mint.js --network rinkeby
 const network = hre.network.name;
 const fs = require('fs');
 

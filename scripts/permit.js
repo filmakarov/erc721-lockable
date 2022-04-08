@@ -1,64 +1,82 @@
-var Web3 = require('web3');
 const { ethers } = require("hardhat");
 
-const SECOND = 1000;
-var web3 = new Web3("https://rinkeby.infura.io/v3/7e8450f38dce45ec88ecff6d8bb99d4e");
+async function main() {
+  const SECOND = 1000;
 
-const fromAddress = process.env.SIGNER;
-const expiry = Math.trunc((Date.now() + 120 * SECOND) / SECOND);
-const nonce = 0;
-const spender = process.env.SPENDER;
+  let provider = await new ethers.providers.JsonRpcProvider(process.env.RPC_NODE_URL_RINKEBY);
 
-  
-const typedData = JSON.stringify({
-  types: {
-    EIP712Domain: [
-      {
-        name: "name",
-        type: "string"
-      },
-      {
-        name: "version",
-        type: "string"
-      },
-      {
-        name: "chainId",
-        type: "uint256"
-      },
-      {
-        name: "verifyingContract",
-        type: "address"
-      }
-    ],
-    Permit: [
-        { name: 'signer', type: 'address' },
-        { name: 'spender', type: 'address' },
-        { name: 'nonce', type: 'uint256' },
-        { name: 'deadline', type: 'uint256' }
-    ]
-  },
-  primaryType: "Permit",
-  domain: {
-    name: "MockNFT",
-    version: '1',
-    chainId: "4",
-    verifyingContract: "0x356D9A6a699B5C2F080FFbA653683D1efF5a79af"
-  },
-  message: {
-    signer: fromAddress,
-    spender: spender,
-    nonce: nonce,
-    deadline: expiry
-  }
-});
-//web3.eth.signTypedData(typedData, process.env.WALLET);
-web3.currentProvider.send({
-  method: "eth_signTypedData_v4",
-  params: [fromAddress, typedData],
-  from: fromAddress
-},
-function (err, result) {
-  if (err) return console.dir(err);
-  if (result.error) return console.error('ERROR', result);
-  console.log('TYPED SIGNED:' + JSON.stringify(result.result));
-});
+  const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+  const randomWallet = new ethers.Wallet("0x3141592653589793238462643383279502884197169399375105820974944592", provider);
+
+  const fromAddress = process.env.SIGNER;
+  const expiry = Math.trunc((Date.now() + 1200 * SECOND) / SECOND);
+  const nonce = 0;
+  const spender = randomWallet.address;
+
+  console.log(spender);
+
+  const typedData = {
+    types: {
+      EIP712Domain: [
+        {
+          name: "name",
+          type: "string"
+        },
+        {
+          name: "version",
+          type: "string"
+        },
+        {
+          name: "chainId",
+          type: "uint256"
+        },
+        {
+          name: "verifyingContract",
+          type: "address"
+        }
+      ],
+      PermitAll: [
+          { name: 'signer', type: 'address' },
+          { name: 'spender', type: 'address' },
+          { name: 'nonce', type: 'uint256' },
+          { name: 'deadline', type: 'uint256' }
+      ]
+    },
+    primaryType: "PermitAll",
+    domain: {
+      name: "MockNFT",
+      version: '1',
+      chainId: 4,
+      verifyingContract: "0xE27c90d8BF9ccE31E092E7D563B338B1F972034b"
+    },
+    message: {
+      signer: spender,
+      spender: fromAddress,
+      nonce: nonce,
+      deadline: expiry
+    }
+  };
+
+  let signature = await randomWallet._signTypedData(
+    typedData.domain,
+    { PermitAll: typedData.types.PermitAll },
+    typedData.message,
+  );
+
+  console.log(signature);
+  const MockNFTInstance = await ethers.getContractFactory("MockNFT");
+  const MockNFT = await MockNFTInstance.attach("0xE27c90d8BF9ccE31E092E7D563B338B1F972034b");
+
+  const tx = await MockNFT
+    .connect(signer)
+    .permitAll(randomWallet.address, signer.address, expiry, signature);
+
+  console.log(tx);
+}
+
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });

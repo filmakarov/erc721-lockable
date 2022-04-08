@@ -10,6 +10,7 @@
  require("hardhat-deploy");
  require('web3-utils');
  require('web3');
+ require('web3-provider-engine');
  
  const {alchemyApiKeyMain} = require('./secrets.json');
  
@@ -34,6 +35,10 @@ module.exports = {
         auto: false,
         interval: [13000, 16000]
       },
+    },
+    bsc: {
+      url: process.env.RPC_NODE_URL_BSCTESTNET,
+      accounts: [process.env.PRIVATE_KEY]
     },
     mainnet: {
       url: `https://eth-mainnet.alchemyapi.io/v2/${alchemyApiKeyMain}`,
