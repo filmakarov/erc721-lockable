@@ -173,7 +173,7 @@ using Strings for uint256;
                 abi.encodePacked(
                     "\x19\x01",
                     DOMAIN_SEPARATOR(),
-                    keccak256(abi.encode(PERMIT_ALL_TYPEHASH, operator, noncesForAll[signer][operator]++, deadline))
+                    keccak256(abi.encode(PERMIT_ALL_TYPEHASH, signer, operator, noncesForAll[signer][operator]++, deadline))
                 )
             );
 

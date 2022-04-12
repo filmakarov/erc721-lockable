@@ -3,6 +3,8 @@ build/contracts
 console.txt
 secrets.json
 contracts/backup
+.env
+networks
 
 #Hardhat files
 cache
