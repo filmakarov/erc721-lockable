@@ -259,7 +259,6 @@ async function signPermitAll(signer, spender, nonce, deadline, holder) {
           deadline,
           holder
         );
-        console.log(signature);
         expect(await nftContract.isApprovedForAll(await holder.getAddress(), await locker.getAddress())).to.be.equal(false);
 
         await nftContract

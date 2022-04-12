@@ -8,9 +8,6 @@
  require('hardhat-contract-sizer');
  require("dotenv").config();
  require("hardhat-deploy");
- require('web3-utils');
- require('web3');
- require('web3-provider-engine');
  
  const {alchemyApiKeyMain} = require('./secrets.json');
  

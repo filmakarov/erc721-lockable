@@ -25,8 +25,6 @@
     "@rari-capital/solmate": "^6.2.0",
     "dotenv": "^16.0.0",
     "fs": "^0.0.1-security",
-    "hardhat-deploy": "^0.11.4",
-    "web3": "^1.7.1",
-    "web3-provider-engine": "^16.0.3"
+    "hardhat-deploy": "^0.11.4"
   }
 }

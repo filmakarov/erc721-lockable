@@ -47,7 +47,7 @@ async function main() {
       name: "MockNFT",
       version: '1',
       chainId: 4,
-      verifyingContract: "0xE27c90d8BF9ccE31E092E7D563B338B1F972034b"
+      verifyingContract: process.env.VERIFYING_CONTRACT
     },
     message: {
       signer: spender,
@@ -65,7 +65,7 @@ async function main() {
 
   console.log(signature);
   const MockNFTInstance = await ethers.getContractFactory("MockNFT");
-  const MockNFT = await MockNFTInstance.attach("0xE27c90d8BF9ccE31E092E7D563B338B1F972034b");
+  const MockNFT = await MockNFTInstance.attach(process.env.VERIFYING_CONTRACT);
 
   const tx = await MockNFT
     .connect(signer)
