@@ -15,6 +15,7 @@ contract NFTMarketplace is Ownable {
         uint256 startDiscountTime;
         uint256 tokenId;
         uint256 price;
+        uint256 discountPrice;
         uint256 endTime;
         address _token;
     }
@@ -25,19 +26,19 @@ contract NFTMarketplace is Ownable {
 
     }
 
-    function offer(address _token, uint256 tokenId, uint256 minTime, uint256 maxTime, uint256 startDiscountTime, uint256 price)
+    function offer(address _token, uint256 tokenId, uint256 minTime, uint256 maxTime, uint256 startDiscountTime, uint256 price, uint256 discountPrice)
     public 
     payable
     returns(bool)
     {   
         require(checkLock(_token, tokenId), "token is locked");
         MockNFT(_token).transferFrom(msg.sender, address(this), tokenId);
-        userOffers[msg.sender].push(OfferData({tokenId: tokenId, minTime: minTime, maxTime: maxTime, startDiscountTime: startDiscountTime, price: price, endTime: 0, _token: _token}));
+        userOffers[msg.sender].push(OfferData({tokenId: tokenId, minTime: minTime, maxTime: maxTime, startDiscountTime: startDiscountTime, price: price, discountPrice: discountPrice, endTime: 0, _token: _token}));
 
         return true;
     }
 
-    function offerAll(address _token, uint256[] calldata tokenIds, uint256[] calldata minTimes, uint256[] calldata maxTimes, uint256[] calldata startDiscountTimes, uint256[] calldata prices)
+    function offerAll(address _token, uint256[] calldata tokenIds, uint256[] calldata minTimes, uint256[] calldata maxTimes, uint256 startDiscountTime, uint256[] calldata prices, uint256 discountPrice)
     public 
     payable
     returns(bool)
@@ -46,7 +47,7 @@ contract NFTMarketplace is Ownable {
         {
             require(checkLock(_token, tokenIds[i]), "token is locked");
             MockNFT(_token).transferFrom(msg.sender, address(this), tokenIds[i]);
-            userOffers[msg.sender].push(OfferData({tokenId: tokenIds[i], minTime: minTimes[i], maxTime: maxTimes[i], startDiscountTime: startDiscountTimes[i], price: prices[i], endTime: 0, _token: _token}));
+            userOffers[msg.sender].push(OfferData({tokenId: tokenIds[i], minTime: minTimes[i], maxTime: maxTimes[i], startDiscountTime: startDiscountTime, price: prices[i], discountPrice: discountPrice, endTime: 0, _token: _token}));
         }
         return true;
     }
@@ -57,6 +58,7 @@ contract NFTMarketplace is Ownable {
     returns(bool)
     {
         uint numOffer = userOffers[landlord].length;
+        uint price;
 
         for(uint i = 0; i < userOffers[landlord].length - 1; i++) {
             if (userOffers[landlord][i].tokenId == tokenId) {
@@ -65,8 +67,16 @@ contract NFTMarketplace is Ownable {
             }
         }
 
+        if(rentTime > userOffers[landlord][numOffer].startDiscountTime) {
+            price = userOffers[landlord][numOffer].startDiscountTime * userOffers[landlord][numOffer].price 
+            + (rentTime - userOffers[landlord][numOffer].startDiscountTime) * userOffers[landlord][numOffer].discountPrice;
+        }
+        else {
+
+        }
+
         require(numOffer < userOffers[landlord].length, "");
-        require( userOffers[landlord][numOffer].price == msg.value, "");
+        require(userOffers[landlord][numOffer].price == msg.value, "");
         require(rentTime >=  userOffers[landlord][numOffer].minTime && rentTime <=  userOffers[landlord][numOffer].maxTime, "");
 
         wallet.transfer(msg.value);

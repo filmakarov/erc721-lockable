@@ -44,7 +44,7 @@ module.exports = {
     }
   },
   etherscan: {
-    apiKey: process.env.SCAN_API_KEY
+    apiKey: process.env.SCAN_API_KEY_BSC
   },
   contractSizer: {
     alphaSort: true,
