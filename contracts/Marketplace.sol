@@ -72,7 +72,7 @@ contract NFTMarketplace is Ownable {
             + (rentTime - userOffers[landlord][numOffer].startDiscountTime) * userOffers[landlord][numOffer].discountPrice;
         }
         else {
-
+            price = rentTime * userOffers[landlord][numOffer].price;
         }
 
         require(numOffer < userOffers[landlord].length, "");
