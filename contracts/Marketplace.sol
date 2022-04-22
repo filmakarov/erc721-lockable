@@ -43,8 +43,7 @@ contract NFTMarketplace is Ownable {
     payable
     returns(bool)
     {   
-        for(uint i = 0; i < tokenIds.length; i++)
-        {
+        for(uint i = 0; i < tokenIds.length; i++) {
             require(checkLock(_token, tokenIds[i]), "token is locked");
             MockNFT(_token).transferFrom(msg.sender, address(this), tokenIds[i]);
             userOffers[tokenIds[i]][msg.sender] = (OfferData({minTime: minTimes[i], maxTime: maxTimes[i], startDiscountTime: 0, price: prices[i], discountPrice: 0, endTime: 0, token: _token}));
@@ -57,8 +56,7 @@ contract NFTMarketplace is Ownable {
     payable
     returns(bool)
     {   
-        for(uint i = 0; i < tokenIds.length; i++)
-        {
+        for(uint i = 0; i < tokenIds.length; i++) {
             require(userOffers[tokenId][msg.sender].token != address(0), "");
 
             MockNFT(_token).transferFrom(msg.sender, address(this), tokenIds[i]);
@@ -93,7 +91,7 @@ contract NFTMarketplace is Ownable {
 
         MockNFT(_token).lock(address(this), tokenId);
         MockNFT(_token).transferFrom(address(this), msg.sender, tokenId);
-       userOffers[tokenId][landlord].endTime = rentTime + block.timestamp;
+        userOffers[tokenId][landlord].endTime = rentTime * 86400 + block.timestamp;
 
         return true;
     }
