@@ -13,14 +13,14 @@ contract NFTMarketplace is Ownable {
         uint256 minTime;
         uint256 maxTime;
         uint256 startDiscountTime;
-        uint256 tokenId;
         uint256 price;
         uint256 discountPrice;
         uint256 endTime;
-        address _token;
+        address token;
     }
-
-    mapping(address => OfferData[]) public userOffers;
+    
+    mapping(uint256 => mapping(address => OfferData))
+        public userOffers;
 
     constructor() {
 
@@ -33,12 +33,12 @@ contract NFTMarketplace is Ownable {
     {   
         require(checkLock(_token, tokenId), "token is locked");
         MockNFT(_token).transferFrom(msg.sender, address(this), tokenId);
-        userOffers[msg.sender].push(OfferData({tokenId: tokenId, minTime: minTime, maxTime: maxTime, startDiscountTime: startDiscountTime, price: price, discountPrice: discountPrice, endTime: 0, _token: _token}));
+        userOffers[tokenId][msg.sender] = (OfferData({minTime: minTime, maxTime: maxTime, startDiscountTime: startDiscountTime, price: price, discountPrice: discountPrice, endTime: 0, token: _token}));
 
         return true;
     }
 
-    function offerAll(address _token, uint256[] calldata tokenIds, uint256[] calldata minTimes, uint256[] calldata maxTimes, uint256 startDiscountTime, uint256[] calldata prices, uint256 discountPrice)
+    function offerAll(address _token, uint256[] calldata tokenIds, uint256[] calldata minTimes, uint256[] calldata maxTimes, uint256[] calldata prices)
     public 
     payable
     returns(bool)
@@ -47,43 +47,53 @@ contract NFTMarketplace is Ownable {
         {
             require(checkLock(_token, tokenIds[i]), "token is locked");
             MockNFT(_token).transferFrom(msg.sender, address(this), tokenIds[i]);
-            userOffers[msg.sender].push(OfferData({tokenId: tokenIds[i], minTime: minTimes[i], maxTime: maxTimes[i], startDiscountTime: startDiscountTime, price: prices[i], discountPrice: discountPrice, endTime: 0, _token: _token}));
+            userOffers[tokenIds[i]][msg.sender] = (OfferData({minTime: minTimes[i], maxTime: maxTimes[i], startDiscountTime: 0, price: prices[i], discountPrice: 0, endTime: 0, token: _token}));
+        }
+        return true;
+    }
+
+    function setDiscountData(address _token, uint256[] calldata tokenIds, uint256[] calldata startDiscountTimes, uint256[] calldata discountPrices)
+    public 
+    payable
+    returns(bool)
+    {   
+        for(uint i = 0; i < tokenIds.length; i++)
+        {
+            require(userOffers[tokenId][msg.sender].token != address(0), "");
+
+            MockNFT(_token).transferFrom(msg.sender, address(this), tokenIds[i]);
+
+            userOffers[tokenIds[i]][msg.sender].discountPrice = discountPrices[i];
+            userOffers[tokenIds[i]][msg.sender].startDiscountTime = startDiscountTimes[i];
         }
         return true;
     }
 
     function rent(address _token, address landlord, uint256 tokenId, uint256 rentTime) 
     public
-    payable
+    payable 
     returns(bool)
     {
-        uint numOffer = userOffers[landlord].length;
+        require(userOffers[tokenId][landlord].token != address(0), "");
+
         uint price;
 
-        for(uint i = 0; i < userOffers[landlord].length - 1; i++) {
-            if (userOffers[landlord][i].tokenId == tokenId) {
-                numOffer = i;
-                break;
-            }
-        }
-
-        if(rentTime > userOffers[landlord][numOffer].startDiscountTime) {
-            price = userOffers[landlord][numOffer].startDiscountTime * userOffers[landlord][numOffer].price 
-            + (rentTime - userOffers[landlord][numOffer].startDiscountTime) * userOffers[landlord][numOffer].discountPrice;
+        if(rentTime > userOffers[tokenId][landlord].startDiscountTime) {
+            price = userOffers[tokenId][landlord].startDiscountTime * userOffers[tokenId][landlord].price 
+            + (rentTime - userOffers[tokenId][landlord].startDiscountTime) * userOffers[tokenId][landlord].discountPrice;
         }
         else {
-            price = rentTime * userOffers[landlord][numOffer].price;
+            price = rentTime * userOffers[tokenId][landlord].price;
         }
 
-        require(numOffer < userOffers[landlord].length, "");
-        require(userOffers[landlord][numOffer].price == msg.value, "");
-        require(rentTime >=  userOffers[landlord][numOffer].minTime && rentTime <=  userOffers[landlord][numOffer].maxTime, "");
+        require(userOffers[tokenId][landlord].price == msg.value, "");
+        require(rentTime >=  userOffers[tokenId][landlord].minTime && rentTime <=  userOffers[tokenId][landlord].maxTime, "");
 
         wallet.transfer(msg.value);
 
         MockNFT(_token).lock(address(this), tokenId);
         MockNFT(_token).transferFrom(address(this), msg.sender, tokenId);
-        userOffers[landlord][numOffer].endTime = rentTime + block.timestamp;
+       userOffers[tokenId][landlord].endTime = rentTime + block.timestamp;
 
         return true;
     }
