@@ -31,10 +31,10 @@ contract NFTMarketplace is Ownable {
         uint256 extendedTime;
     }
 
-    mapping(uint256 => mapping(address => RequestRefund))
+    mapping(address => mapping(uint256 => mapping(address => RequestRefund)))
         public refundRequests;
 
-    mapping(uint256 => mapping(address => RequestExtend))
+    mapping(address => mapping(uint256 => mapping(address => RequestExtend)))
         public extendRequests;
     
     mapping(uint256 => mapping(address => OfferData))
@@ -141,8 +141,8 @@ contract NFTMarketplace is Ownable {
         require(userOffers[_tokenId][landlord].token == _token, "");
         require(MockNFT(_token).ownerOf(_tokenId) == msg.sender, "");
 
-        refundRequests[_tokenId][landlord].isRenterAgree = true;
-        refundRequests[_tokenId][landlord].payoutAmount = _payoutAmount;
+        refundRequests[_token][_tokenId][landlord].isRenterAgree = true;
+        refundRequests[_token][_tokenId][landlord].payoutAmount = _payoutAmount;
 
         return true;
     }
@@ -155,10 +155,10 @@ contract NFTMarketplace is Ownable {
         require(userOffers[_tokenId][landlord].token == _token, "");
         require(msg.sender == landlord, "");
 
-        uint _payoutAmount = refundRequests[_tokenId][landlord].payoutAmount;
+        uint _payoutAmount = refundRequests[_token][_tokenId][landlord].payoutAmount;
         address payable renter = payable(MockNFT(_token).ownerOf(_tokenId));
 
-        if(refundRequests[_tokenId][landlord].isRenterAgree == true) {
+        if(refundRequests[_token][_tokenId][landlord].isRenterAgree == true) {
             renter.transfer(_payoutAmount);
             MockNFT(_token).transferFrom(renter, landlord, _tokenId);
         }
@@ -176,9 +176,9 @@ contract NFTMarketplace is Ownable {
         require(userOffers[_tokenId][landlord].token == _token, "");
         require(MockNFT(_token).ownerOf(_tokenId) == msg.sender, "");
 
-        extendRequests[_tokenId][landlord].isLandlordAgree = true;
-        extendRequests[_tokenId][landlord].payoutAmount = _payoutAmount;
-        extendRequests[_tokenId][landlord].extendedTime = _extendedTime;
+        extendRequests[_token][_tokenId][landlord].isLandlordAgree = true;
+        extendRequests[_token][_tokenId][landlord].payoutAmount = _payoutAmount;
+        extendRequests[_token][_tokenId][landlord].extendedTime = _extendedTime;
 
         return true;
     }
@@ -191,10 +191,10 @@ contract NFTMarketplace is Ownable {
         require(userOffers[_tokenId][landlord].token == _token, "");
         require(MockNFT(_token).ownerOf(_tokenId) == msg.sender, "");
 
-        uint _extendedTime = extendRequests[_tokenId][landlord].extendedTime;
-        uint _payoutAmount = extendRequests[_tokenId][landlord].payoutAmount;
+        uint _extendedTime = extendRequests[_token][_tokenId][landlord].extendedTime;
+        uint _payoutAmount = extendRequests[_token][_tokenId][landlord].payoutAmount;
 
-        if(extendRequests[_tokenId][landlord].isLandlordAgree == true) {
+        if(extendRequests[_token][_tokenId][landlord].isLandlordAgree == true) {
             landlord.transfer(_payoutAmount);
             userOffers[_tokenId][landlord].endTime += _extendedTime * 86400;
         }
