@@ -106,7 +106,7 @@ contract NFTMarketplace is Ownable {
 
         feeAmount = price * fee / 200;
 
-        require(price + feeAmount == msg.value, "");
+        require(price + feeAmount <= msg.value, "");
         require(rentTime >=  userOffers[tokenId][landlord].minTime && rentTime <=  userOffers[tokenId][landlord].maxTime, "");
 
         landlord.transfer(price);
