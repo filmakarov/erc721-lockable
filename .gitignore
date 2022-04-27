@@ -3,6 +3,7 @@ build/contracts
 console.txt
 secrets.json
 contracts/backup
+erc721s.code-workspace
 
 #Hardhat files
 cache

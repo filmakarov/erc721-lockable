@@ -31,24 +31,22 @@ abstract contract ERC721s {
                             ERC721 STORAGE                        
     //////////////////////////////////////////////////////////////*/
 
-    uint256 public totalMinted;
-
     mapping(address => uint256) public balanceOf;
 
     mapping(uint256 => address) public owners;
 
+    uint256 public totalSupply;
+
     mapping(uint256 => address) public getApproved;
 
     mapping(address => mapping(address => bool)) public isApprovedForAll;
-
-    mapping(uint256 => bool) public isBurned;
-    uint256 public burnedCounter = 0;
 
     /*///////////////////////////////////////////////////////////////
                             ERC721s STORAGE                        
     //////////////////////////////////////////////////////////////*/
 
     mapping(uint256 => address) public getLocked;
+
 
     /*///////////////////////////////////////////////////////////////
                               CONSTRUCTOR
@@ -114,13 +112,12 @@ abstract contract ERC721s {
 
         //to prevent new owner to become the owner of next tokens in the batch 
         if (owners[nextId] == address(0)) {  //if that was not the last token of batch
-            if (_exists(nextId)) { //and the next token exists (was minted) and has not been burned
+            if (_exists(nextId)) { //and the next token exists (was minted)
                 owners[nextId] = from; //explicitly set the owner for that token
             }
         }
 
         delete getApproved[id];
-        delete getLocked[id];
 
         emit Transfer(from, to, id);
     }
@@ -157,11 +154,7 @@ abstract contract ERC721s {
     }
 
     function _exists(uint256 id) internal view returns (bool) {
-        return (id < totalMinted && !isBurned[id]);
-    }
-
-    function totalSupply() public view returns (uint256) {
-        return totalMinted - burnedCounter;
+        return id < totalSupply;
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -169,7 +162,7 @@ abstract contract ERC721s {
     //////////////////////////////////////////////////////////////*/
 
     function ownerOf(uint256 id) public view returns (address) {
-        require(_exists(id), "NOT_MINTED_YET_OR_BURNED");
+        require(_exists(id), "NOT_MINTED_YET");
 
         unchecked {
             for (uint256 curr = id; curr >=0; curr--) {
@@ -214,25 +207,25 @@ abstract contract ERC721s {
         require(qty != 0, "CAN_NOT_MINT_0");
 
         // put just the first owner in the batch
-        owners[totalMinted]=to;
+        owners[totalSupply]=to;
 
         // check if receiver identifies itself ERC721TokenReceiver only once per batch 
         if (safe)
                 require(
                     to.code.length == 0 ||
-                        ERC721TokenReceiver(to).onERC721Received(msg.sender, address(0), totalMinted, "") ==
+                        ERC721TokenReceiver(to).onERC721Received(msg.sender, address(0), totalSupply, "") ==
                         ERC721TokenReceiver.onERC721Received.selector,
                     "UNSAFE_RECIPIENT"
                 );
 
         for (uint256 i=0; i<qty; i++) {
-            emit Transfer(address(0), to, totalMinted+i);
+            emit Transfer(address(0), to, totalSupply+i);
         }
 
         // Counter overflow is incredibly unrealistic here.
         unchecked {
                 balanceOf[to] += qty;
-                totalMinted += qty;
+                totalSupply += qty;
             }
         
     }
@@ -248,17 +241,6 @@ abstract contract ERC721s {
         }
 
         delete owners[id];
-
-        isBurned[id] = true;
-        burnedCounter++;
-
-        uint256 nextId = id+1;
-
-        if (owners[nextId] == address(0)) {  //if that was not the last token of batch
-            if (_exists(nextId)) { //and the next token exists (was minted) and has not been burned
-                owners[nextId] = owner; //explicitly set the owner for that token
-            }
-        }
 
         delete getApproved[id];
 
