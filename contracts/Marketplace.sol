@@ -235,12 +235,22 @@ contract NFTMarketplace is Ownable {
         return locker == address(0) ? true : false;
     }
 
-    function _setWallet(address payable _wallet)
-        external
-        onlyOwner
-        returns (bool) 
+    function setWallet(address payable _wallet)
+    external
+    onlyOwner
+    returns (bool) 
     {
         wallet = _wallet;
+
+        return true;
+    }
+
+    function setFee(uint256 _fee)
+    external
+    onlyOwner
+    returns (bool) 
+    {
+        fee = _fee;
 
         return true;
     }
