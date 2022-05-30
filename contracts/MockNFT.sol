@@ -62,7 +62,7 @@ using Strings for uint256;
 
     function mint(address to, uint256 qty) public {
         // require minting authorization here
-        require(totalSupply + qty <= MAX_ITEMS, ">MaxSupply");
+        require(totalSupply() + qty <= MAX_ITEMS, ">MaxSupply");
         _safeMint(to, qty); 
     }
 
@@ -218,14 +218,6 @@ using Strings for uint256;
         return string(abi.encodePacked(baseURI, tokenId.toString()));
     }
 
-    /// @notice Returns how many tokens exists 
-    /// @return 
-    /* 
-    function totalSupply() public view returns (uint256) {
-        return _tokenIds.current();
-    }  
-    */
-
     /// @notice Iterates over all the exisitng tokens and checks if they belong to the user
     /// This function uses very much resources.
     /// !!! NEVER USE this function with write transactions DIRECTLY. 
@@ -241,7 +233,7 @@ using Strings for uint256;
             uint256[] memory result = new uint256[](tokenCount);
             uint256 resultIndex = 0;
             uint256 NFTId;
-            for (NFTId = 1; NFTId <= totalSupply; NFTId++) { 
+            for (NFTId = 1; NFTId <= totalSupply(); NFTId++) { 
                 if (ownerOf(NFTId) == tokenOwner) {  
                     result[resultIndex] = NFTId;
                     resultIndex++;

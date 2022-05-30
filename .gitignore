@@ -4,6 +4,7 @@ console.txt
 secrets.json
 contracts/backup
 erc721s.code-workspace
+erc721s.sol.bak
 
 #Hardhat files
 cache
