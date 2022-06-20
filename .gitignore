@@ -9,6 +9,7 @@ contracts/*.bak
 erc721s.code-workspace
 .DS_Store
 contracts/.DS_Store
+scripts/deploy2.js
 
 #Hardhat files
 cache

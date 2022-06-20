@@ -52,38 +52,6 @@ async function main() {
     
   }
 
-/*
-Mint:  1   81580
-Mint:  2   83546
-Mint:  3   85512
-Mint:  4   87478
-
-Mint:  5   89444
-
-Mint:  6   91410
-Mint:  7   93376
-Mint:  8   95342
-Mint:  9   97308
-Mint:  10   99274 
-*/
-
-  /*
-  Transfer:  19   101925
-Transfer:  18   82462
-Transfer:  17   80222
-Transfer:  16   77982
-Transfer:  15   75742
-
-Transfer:  14   73502
-
-Transfer:  13   71262
-Transfer:  12   69022
-Transfer:  11   66782
-Transfer:  10   47442
-*/
-  
-
-
 }
 
 // We recommend this pattern to be able to use async/await everywhere
