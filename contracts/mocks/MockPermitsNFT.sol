@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 //import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
 
-import "./ERC721s.sol";
+import "../ERC721s.sol";
 
 /// @title Mock Erc721s NFT featuring EIP2612 like logic for gasless listings
 /// @author Fil Makarov (@filmakarov)
