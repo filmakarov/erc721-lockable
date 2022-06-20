@@ -553,6 +553,7 @@ describe('ERC721S BURNS', async function () {
     let startIndex = (await nftContract.nextTokenIndex()).sub(minted);
     let randomTokenId = startIndex.add(Math.floor(Math.random() * minted));
 
+    //console.log(randomTokenId);
     let burnCounterBefore = await nftContract.burnedCounter();
     let supplyBefore = await nftContract.totalSupply();
     let mintedBefore = await nftContract.totalMinted();
@@ -579,6 +580,43 @@ describe('ERC721S BURNS', async function () {
     // nextTokenIndex and totalMinted do not change
     expect(await nftContract.nextTokenIndex()).to.be.equal(nextTokenBefore);
     expect(await nftContract.totalMinted()).to.be.equal(mintedBefore);
+
+  });
+
+  it('owner can burn / whole range + edge cases', async function () {
+    let minted = (await nftContract.totalMinted());
+    let startIndex = (await nftContract.nextTokenIndex()).sub(minted);
+
+    for (randomTokenId=startIndex; randomTokenId.lt(await nftContract.nextTokenIndex()); randomTokenId=randomTokenId.add(1))
+    {
+      console.log(randomTokenId);
+      let burnCounterBefore = await nftContract.burnedCounter();
+      let supplyBefore = await nftContract.totalSupply();
+      let mintedBefore = await nftContract.totalMinted();
+      let nextTokenBefore = await nftContract.nextTokenIndex();
+      expect(await nftContract.ownerOf(randomTokenId)).to.equal(await holder.getAddress());
+
+      let tx_burn = await nftContract.connect(holder).burn(randomTokenId);
+      await tx_burn.wait();
+
+      // this token is marked as burned
+      expect(await nftContract.isBurned(randomTokenId)).to.be.true;
+
+      // burn counter increases
+      expect(await nftContract.burnedCounter()).to.be.equal(burnCounterBefore.add(1));
+
+      // ownerOf reverts for burned token
+      await expect(
+        nftContract.ownerOf(randomTokenId),
+      ).to.be.revertedWith("NOT_MINTED_YET_OR_BURNED");
+      
+      // total supply decreases
+      expect(await nftContract.totalSupply()).to.be.equal(supplyBefore.sub(1));
+
+      // nextTokenIndex and totalMinted do not change
+      expect(await nftContract.nextTokenIndex()).to.be.equal(nextTokenBefore);
+      expect(await nftContract.totalMinted()).to.be.equal(mintedBefore);
+    }
 
   });
 
@@ -721,6 +759,11 @@ describe('ERC721S BURNS', async function () {
     let minted = (await nftContract.totalMinted());
     let startIndex = (await nftContract.nextTokenIndex()).sub(minted);
     let randomTokenId = startIndex.add(Math.floor(Math.random() * minted));
+    
+    while (randomTokenId.eq(startIndex)) {
+      //regenerate
+      randomTokenId = startIndex.add(Math.floor(Math.random() * minted));
+    }
 
     let tx_burn = await nftContract.connect(holder).burn(randomTokenId);
     await tx_burn.wait();
