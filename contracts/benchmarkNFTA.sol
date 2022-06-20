@@ -3,8 +3,7 @@ pragma solidity ^0.8.11;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
-//import "./ERC721s.sol";
-import "./erc721a/ERC721A.sol";
+import "erc721a/contracts/ERC721A.sol";
 //import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
 /// @title Mock Erc721s NFT featuring EIP2612 like logic for gasless listings

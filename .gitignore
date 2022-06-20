@@ -6,6 +6,9 @@ contracts/backup
 contracts/temp
 scripts/benchmark_dolph.js
 contracts/*.bak
+erc721s.code-workspace
+.DS_Store
+contracts/.DS_Store
 
 #Hardhat files
 cache
