@@ -6,6 +6,7 @@
  require("@nomiclabs/hardhat-waffle");
  require("@nomiclabs/hardhat-etherscan");
  require('hardhat-contract-sizer');
+ require("hardhat-gas-reporter");
 
  const { alchemyApiKeyRinkeby, alchemyApiKeyMain, privkey, etherScanApiKey } = require('./secrets.json');
  
@@ -44,5 +45,10 @@ module.exports = {
     alphaSort: true,
     runOnCompile: true,
     disambiguatePaths: false,
+  },
+  gasReporter: {
+    currency: 'USD',
+    gasPrice: 35,
+    coinmarketcap: '04cef6de-97ed-42e1-87f7-14469f3911f3'
   },
 };

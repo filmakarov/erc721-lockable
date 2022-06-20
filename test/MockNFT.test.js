@@ -58,7 +58,7 @@ async function sign(locker, tokenId, nonce, deadline, signer) {
       // get chainId
       chainId = await ethers.provider.getNetwork().then((n) => n.chainId);
 
-      const MockNFT = await ethers.getContractFactory('MockNFT', deployer);
+      const MockNFT = await ethers.getContractFactory('MockPermitsNFT', deployer);
       nftContract = await MockNFT.deploy(mybase);
   });
 
@@ -67,7 +67,7 @@ async function sign(locker, tokenId, nonce, deadline, signer) {
         expect(nftContract.address).to.not.equal("");
     });
     it('deploys with correct base URI', async function () {
-      const mintQty = 3;
+      const mintQty = 5;
       await nftContract.connect(random).mint(await random.getAddress(), mintQty);
       expect(await nftContract.tokenURI(await nftContract.totalSupply() - 1)).to.include(mybase);
     });

@@ -3,8 +3,9 @@ build/contracts
 console.txt
 secrets.json
 contracts/backup
-erc721s.code-workspace
-erc721s.sol.bak
+contracts/temp
+scripts/benchmark_dolph.js
+contracts/*.bak
 
 #Hardhat files
 cache
