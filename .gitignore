@@ -10,6 +10,7 @@ erc721s.code-workspace
 .DS_Store
 contracts/.DS_Store
 scripts/deploy2.js
+package-lock.json
 
 #Hardhat files
 cache
