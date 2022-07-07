@@ -29,6 +29,9 @@ using Strings for uint256;
         baseURI = myBase;     
     }
 
+    // for testing purposes. 
+    // if you want your collection to start from token #0, you can just remove this override
+    // if you want it to start from token #1, change to 'return 1;' instead of 'return 5;'
     function _startTokenIndex() internal pure override returns (uint256) {
         return 5;
     }
