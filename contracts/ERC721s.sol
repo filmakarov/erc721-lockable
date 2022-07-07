@@ -6,7 +6,7 @@ pragma solidity >=0.8.0;
 /// @notice Based on Solmate (https://github.com/Rari-Capital/solmate/blob/main/src/tokens/ERC721.sol)
 /// @author filio.eth (https://twitter.com/filmakarov)
 
-abstract contract ERC721s {
+abstract contract ERC721S {
     /*///////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -71,6 +71,19 @@ abstract contract ERC721s {
     }
 
     function _unlock(uint256 id) internal virtual {
+        getLocked[id] = address(0);
+    }
+
+    function lock(address unlocker, uint256 id) public {
+        address tokenOwner = ownerOf(id);
+        require(msg.sender == tokenOwner || msg.sender == getApproved[id] || isApprovedForAll[tokenOwner][msg.sender]
+        , "NOT_AUTHORIZED");
+        require(getLocked[id] == address(0), "ALREADY_LOCKED"); 
+        getLocked[id] = unlocker;
+    }
+
+    function unlock(uint256 id) public {
+        require(msg.sender == getLocked[id], "NOT_UNLOCKER");
         getLocked[id] = address(0);
     }
 

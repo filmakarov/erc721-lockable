@@ -8,16 +8,14 @@ const { ZERO_ADDRESS } = require('@openzeppelin/test-helpers/src/constants');
 
 const toBN = ethers.BigNumber.from;
 
-describe('ERC721s tests', () => {
+describe('ERC721S TESTS', () => {
   let deployer;
   let random;
   let random2;
   let unlocker;
   let holder;
   let spender;
-  let paperKey;
   let allowancesigner;
-  let artist;
   let operator;
   const ADDRESS_ZERO = ethers.constants.AddressZero;
   const mybase = "https://mybase.com/json/";
@@ -25,7 +23,7 @@ describe('ERC721s tests', () => {
   const provider = ethers.provider;
   const { hexlify, toUtf8Bytes } = ethers.utils;
 
-async function sign(spender, tokenId, nonce, deadline, signer) {
+async function signPermit(spender, tokenId, nonce, deadline, signer) {
   //inspired by @dievardump's implementation
   const typedData = {
       types: {
@@ -60,6 +58,39 @@ async function sign(spender, tokenId, nonce, deadline, signer) {
   return signature;
 }
 
+async function signPermitAll(operator, nonce, deadline, signer) {
+  //inspired by @dievardump's implementation
+  const typedData = {
+      types: {
+          Permit: [
+              { name: 'operator', type: 'address' },
+              { name: 'nonce', type: 'uint256' },
+              { name: 'deadline', type: 'uint256' },
+          ],
+      },
+      primaryType: 'Permit',
+      domain: {
+          name: await nftContract.name(),
+          version: '1',
+          chainId: chainId,
+          verifyingContract: nftContract.address,
+      },
+      message: {
+          operator,
+          nonce,
+          deadline,
+      },
+  };
+
+  const signature = await signer._signTypedData(
+      typedData.domain,
+      { Permit: typedData.types.Permit },
+      typedData.message,
+  );
+
+  return signature;
+}
+
 async function signAllowance(account, mintQty, allowanceId, signerAccount = allowancesigner) {
   const idBN = toBN(allowanceId).shl(128);
   const nonce = idBN.add(mintQty);
@@ -75,7 +106,7 @@ async function signAllowance(account, mintQty, allowanceId, signerAccount = allo
 }
 
   beforeEach(async () => {
-      [deployer, random, random2, unlocker, holder, spender, paperKey, allowancesigner, artist, operator] = await ethers.getSigners();
+      [deployer, random, random2, unlocker, holder, spender, allowancesigner, operator] = await ethers.getSigners();
 
       // get chainId
       chainId = await ethers.provider.getNetwork().then((n) => n.chainId);
@@ -589,7 +620,7 @@ describe('ERC721S BURNS', async function () {
 
     for (randomTokenId=startIndex; randomTokenId.lt(await nftContract.nextTokenIndex()); randomTokenId=randomTokenId.add(1))
     {
-      console.log(randomTokenId);
+      //console.log(randomTokenId);
       let burnCounterBefore = await nftContract.burnedCounter();
       let supplyBefore = await nftContract.totalSupply();
       let mintedBefore = await nftContract.totalMinted();
@@ -910,6 +941,153 @@ describe('ERC721S BURNS', async function () {
 
   });
 
+  });
+
+     /*  ====== ====== ====== ====== ====== ======
+    *   
+    *   ERC721S LOCKING AND UNLOCKING TESTS
+    * 
+    * ====== ====== ====== ====== ======  ====== */
+
+     describe('ERC721S Locking and unlocking tests', async function () {
+
+      beforeEach(async () => {      
+        let txPrelMint = await nftContract.connect(holder).mint(await holder.getAddress(), 10);
+        await txPrelMint.wait();
+        //console.log((await nftContract.totalSupply()).toString());
+      });
+
+      it('Owner can lock his own token', async function () {
+        let minted = (await nftContract.totalMinted());
+        let startIndex = (await nftContract.nextTokenIndex()).sub(minted);
+        let randomTokenId = startIndex.add(Math.floor(Math.random() * minted));
+
+        await nftContract.connect(holder).lock(await unlocker.getAddress(), randomTokenId);
+
+        expect(await nftContract.getLocked(randomTokenId)).to.be.equal(await unlocker.getAddress());
+      });
+
+      it('Non Owner can not lock token', async function () {
+        let minted = (await nftContract.totalMinted());
+        let startIndex = (await nftContract.nextTokenIndex()).sub(minted);
+        let randomTokenId = startIndex.add(Math.floor(Math.random() * minted));
+
+        await expect(
+          nftContract.connect(random).lock(await unlocker.getAddress(), randomTokenId),
+        ).to.be.revertedWith('NOT_AUTHORIZED');
+      });
+
+      // Approved users can lock
+      it('Approved can lock token', async function () {
+        let minted = (await nftContract.totalMinted());
+        let startIndex = (await nftContract.nextTokenIndex()).sub(minted);
+        let randomTokenId = startIndex.add(Math.floor(Math.random() * minted));
+
+        //check that before approval was not able to lock
+        await expect(
+          nftContract.connect(random2).lock(await unlocker.getAddress(), randomTokenId),
+        ).to.be.revertedWith('NOT_AUTHORIZED');
+
+        await nftContract.connect(holder).approve(await random2.getAddress(), randomTokenId);
+        await nftContract.connect(random2).lock(await unlocker.getAddress(), randomTokenId);
+
+        expect(await nftContract.getLocked(randomTokenId)).to.be.equal(await unlocker.getAddress());
+      });
+
+      it('Approved For All can lock token', async function () {
+        let minted = (await nftContract.totalMinted());
+        let startIndex = (await nftContract.nextTokenIndex()).sub(minted);
+        let randomTokenId = startIndex.add(Math.floor(Math.random() * minted));
+
+        expect(await nftContract.ownerOf(randomTokenId)).to.equal(await holder.getAddress());
+
+        // verify that operator is not approved before permit is used
+        expect(await nftContract.isApprovedForAll(await holder.getAddress(), await operator.getAddress())).to.be.false;
+
+        //check that before approval was not able to lock
+        await expect(
+          nftContract.connect(operator).lock(await unlocker.getAddress(), randomTokenId)
+        ).to.be.revertedWith('NOT_AUTHORIZED');
+
+        await nftContract.connect(holder).setApprovalForAll(await operator.getAddress(), true);
+        await nftContract.connect(operator).lock(await unlocker.getAddress(), randomTokenId);
+
+        expect(await nftContract.getLocked(randomTokenId)).to.be.equal(await unlocker.getAddress());
+      });
+
+      // Approved users can not unlock
+       it('Approved can lock token but not unlock', async function () {
+        let minted = (await nftContract.totalMinted());
+        let startIndex = (await nftContract.nextTokenIndex()).sub(minted);
+        let randomTokenId = startIndex.add(Math.floor(Math.random() * minted));
+
+        //check that before approval was not able to lock
+        await expect(
+          nftContract.connect(random2).lock(await unlocker.getAddress(), randomTokenId)
+        ).to.be.revertedWith('NOT_AUTHORIZED');
+
+        await nftContract.connect(holder).approve(await random2.getAddress(), randomTokenId);
+        await nftContract.connect(random2).lock(await unlocker.getAddress(), randomTokenId);
+
+        expect(await nftContract.getLocked(randomTokenId)).to.be.equal(await unlocker.getAddress());
+
+        await expect(
+          nftContract.connect(random2).unlock(randomTokenId),
+        ).to.be.revertedWith('NOT_UNLOCKER');
+      });
+
+      it('Non unlocker even holder can not unlock', async function () {
+        let minted = (await nftContract.totalMinted());
+        let startIndex = (await nftContract.nextTokenIndex()).sub(minted);
+        let randomTokenId = startIndex.add(Math.floor(Math.random() * minted));
+
+        await nftContract.connect(holder).lock(await unlocker.getAddress(), randomTokenId);
+
+        await expect(
+          nftContract.connect(holder).unlock(randomTokenId),
+        ).to.be.revertedWith('NOT_UNLOCKER');
+      });
+
+      it('Unlocker can unlock', async function () {
+        let minted = (await nftContract.totalMinted());
+        let startIndex = (await nftContract.nextTokenIndex()).sub(minted);
+        let randomTokenId = startIndex.add(Math.floor(Math.random() * minted));
+        
+        //lock
+        await nftContract.connect(holder).lock(await unlocker.getAddress(), randomTokenId);
+        expect(await nftContract.getLocked(randomTokenId)).to.be.equal(await unlocker.getAddress());
+
+        //unlock
+        await nftContract.connect(unlocker).unlock(randomTokenId);
+        expect(await nftContract.getLocked(randomTokenId)).to.be.equal(ADDRESS_ZERO);
+      });
+
+      it('owner can not transfer locked token', async function () {
+        let minted = (await nftContract.totalMinted());
+        let startIndex = (await nftContract.nextTokenIndex()).sub(minted);
+        let randomTokenId = startIndex.add(Math.floor(Math.random() * minted));
+        
+        await nftContract.connect(holder).lock(await unlocker.getAddress(), randomTokenId);
+
+        await expect(
+          nftContract.connect(holder).transferFrom(await holder.getAddress(), await random2.getAddress(), randomTokenId),
+        ).to.be.revertedWith('LOCKED');
+      });
+
+      it('Unlocker can transfer locked token', async function () {
+        let minted = (await nftContract.totalMinted());
+        let startIndex = (await nftContract.nextTokenIndex()).sub(minted);
+        let randomTokenId = startIndex.add(Math.floor(Math.random() * minted));
+        
+        //lock
+        await nftContract.connect(holder).lock(await unlocker.getAddress(), randomTokenId);
+        expect(await nftContract.getLocked(randomTokenId)).to.be.equal(await unlocker.getAddress());
+
+        //unlock
+        await nftContract.connect(unlocker).transferFrom(await holder.getAddress(), await random2.getAddress(), randomTokenId);
+        expect(await nftContract.ownerOf(randomTokenId)).to.be.equal(await random2.getAddress()).and.not.to.be.equal(ADDRESS_ZERO);
+      });
+      
   });
 
 });

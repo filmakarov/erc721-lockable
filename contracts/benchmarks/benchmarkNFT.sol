@@ -3,13 +3,13 @@ pragma solidity ^0.8.11;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
-import "../ERC721s.sol";
+import "../ERC721S.sol";
 //import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
 /// @title Mock Erc721s NFT featuring EIP2612 like logic for gasless listings
 /// @author Fil Makarov (@filmakarov)
 
-contract BenchNFT is Ownable, ERC721s {
+contract BenchNFT is Ownable, ERC721S {
 
 using Strings for uint256;
 
@@ -27,7 +27,7 @@ using Strings for uint256;
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    constructor(string memory myBase) ERC721s("BenchNFT", "BNFT") {
+    constructor(string memory myBase) ERC721S("BenchNFT", "BNFT") {
         baseURI = myBase; 
     }
 
@@ -42,25 +42,6 @@ using Strings for uint256;
         _safeMint(to, qty); 
         //_mint(to, qty); 
     }
-
-     /*///////////////////////////////////////////////////////////////
-                       LOCKING LOGIC
-    //////////////////////////////////////////////////////////////*/
-
-    /*   
-    function lock(address unlocker, uint256 id) public {
-        address tokenOwner = ownerOf(id);
-        require(msg.sender == tokenOwner || msg.sender == getApproved[id] || isApprovedForAll[tokenOwner][msg.sender]
-        , "NOT_AUTHORIZED");
-        require(getLocked[id] == address(0), "ALREADY_LOCKED"); 
-        _lock(unlocker, id);
-    }
-
-    function unlock(uint256 id) public {
-        require(msg.sender == getLocked[id], "NOT_UNLOCKER");
-        _unlock(id);
-    }
-    */
 
     /*///////////////////////////////////////////////////////////////
                        PUBLIC METADATA VIEWS

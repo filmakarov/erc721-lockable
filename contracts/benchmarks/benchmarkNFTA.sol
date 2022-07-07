@@ -43,25 +43,6 @@ using Strings for uint256;
         //_mint(to, qty); 
     }
 
-     /*///////////////////////////////////////////////////////////////
-                       LOCKING LOGIC
-    //////////////////////////////////////////////////////////////*/
-
-    /*   
-    function lock(address unlocker, uint256 id) public {
-        address tokenOwner = ownerOf(id);
-        require(msg.sender == tokenOwner || msg.sender == getApproved[id] || isApprovedForAll[tokenOwner][msg.sender]
-        , "NOT_AUTHORIZED");
-        require(getLocked[id] == address(0), "ALREADY_LOCKED"); 
-        _lock(unlocker, id);
-    }
-
-    function unlock(uint256 id) public {
-        require(msg.sender == getLocked[id], "NOT_UNLOCKER");
-        _unlock(id);
-    }
-    */
-
     /*///////////////////////////////////////////////////////////////
                        PUBLIC METADATA VIEWS
     //////////////////////////////////////////////////////////////*/

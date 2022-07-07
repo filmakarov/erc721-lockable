@@ -4,6 +4,7 @@ console.txt
 secrets.json
 contracts/backup
 contracts/temp
+test/temp
 scripts/benchmark_dolph.js
 contracts/*.bak
 erc721s.code-workspace
