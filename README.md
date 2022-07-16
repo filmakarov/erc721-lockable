@@ -36,9 +36,11 @@ One mapping, two internal functions and two public functions are added to the or
 `getLocked` mapping serves to store the unlocker's addresses for the locked tokens. When there is zero address as value for the given key (tokenId), that means this token is not locked.
 
 Both `_lock` and `_unlock` internal functions, which are implemented in the standard `ERC721s.sol` itself, do not perform any check on who can actually lock and unlock. They just do the job required. 
+
 Public `lock` function allows locking by the holder and approved parties. 
 Initially, it was supposed, that some projects can limit it to only holder, so the public function for the locking was not included in the standard itself. It turned out, that in most cases, using this contract with marketplaces requres for the standardized public interface for locking and also requires for the locking to be available for approved parties. So the implementation been included in the contract.
-The implementation provided allows for unlocking only by the unlocker stated in the `getLocked` mapping. 
+
+The public `unlock` implementation provided allows for unlocking only by the unlocker stated in the `getLocked` mapping. 
 
 Aside from one mapping and two functions, there is a change to the `transferFrom` function. 
 ```
@@ -55,6 +57,7 @@ Aside from one mapping and two functions, there is a change to the `transferFrom
 ```
 It prevents the locked token from being transferred and allows for the unlocker to be able to transfer.
 The former feature is needed for the service contracts to be able to manage token during the service period.
+
 All the locks are removed when the token is being transferred.
 
 ## Rationale (Usecases)
