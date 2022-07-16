@@ -5,6 +5,7 @@ pragma solidity >=0.8.0;
 /// @notice Improvement to ERC721 standard, that introduces lockable NFTs. 
 /// @notice Based on Solmate (https://github.com/Rari-Capital/solmate/blob/main/src/tokens/ERC721.sol)
 /// @author filio.eth (https://twitter.com/filmakarov)
+/// @dev Check the repo and readme at https://github.com/filmakarov/erc721s 
 
 abstract contract ERC721S {
     /*///////////////////////////////////////////////////////////////
@@ -66,14 +67,24 @@ abstract contract ERC721S {
                               ERC721s LOGIC
     //////////////////////////////////////////////////////////////*/
     
+    /**
+     * @dev Locks the token
+     */
     function _lock(address unlocker, uint256 id) internal virtual {
         getLocked[id] = unlocker;
     }
 
+    /**
+     * @dev Unlocks the token
+     */
     function _unlock(uint256 id) internal virtual {
         getLocked[id] = address(0);
     }
 
+    /**
+     * @dev Public function to lock the token. Verifies if the msg.sender is the owner
+     *      or approved party.
+     */
     function lock(address unlocker, uint256 id) public {
         address tokenOwner = ownerOf(id);
         require(msg.sender == tokenOwner || msg.sender == getApproved[id] || isApprovedForAll[tokenOwner][msg.sender]
@@ -82,6 +93,9 @@ abstract contract ERC721S {
         getLocked[id] = unlocker;
     }
 
+    /**
+     * @dev Public function to unlock the token. Only the unlocker (stated at the time of locking) can unlock
+     */
     function unlock(uint256 id) public {
         require(msg.sender == getLocked[id], "NOT_UNLOCKER");
         getLocked[id] = address(0);

@@ -40,6 +40,10 @@ abstract contract ERC721SPermits is ERC721S {
                             EIP-2612-LIKE LOGIC
     //////////////////////////////////////////////////////////////*/
     
+    /**
+     * @dev Uses the permit to approve one token for spender
+     */
+
     function permit(
         address signer,
         address spender,
@@ -75,10 +79,14 @@ abstract contract ERC721SPermits is ERC721S {
         emit Approval(ownerOfToken, spender, tokenId);
     }
 
-    // having permit for all can make purchases cheaper for buyers in future, when marketplace can consume only one 
-    // permitAll from buyer to all the tokens from given collection, and all next orders won't need to call permit() 
-    // for every new token purchase, so buyers won't pay gas for that call
-    // this can be more dangerous for seller btw, to approve All of his tokens to the marketplace instead of per token approvals
+    /**
+     * @dev Uses the permit to approve all the tokens owned by signer for the operator
+     * having permit for all can make purchases cheaper for buyers in future, when marketplace can consume only one 
+     * permitAll from buyer to all the tokens from given collection, and all next orders won't need to call permit() 
+     * for every new token purchase, so buyers won't pay gas for that call
+     * this can be more dangerous for seller btw, to approve All of his tokens to the marketplace instead of per token approvals
+     */
+     
     function permitAll(
         address signer,
         address operator,
