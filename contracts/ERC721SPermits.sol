@@ -64,7 +64,9 @@ abstract contract ERC721SPermits is ERC721S {
 
             require(SignatureChecker.isValidSignatureNow(signer, digest, sig), "INVALID_SIGNATURE");
 
-            //signature is good, now should check if signer had rights to approve this token
+            // Signature is good, now should check if signer had rights to approve this token
+            // Like, only owner or operator can user approve functions, 
+            // only owner or operator can sign permits for approval. 
             require(signer == ownerOfToken || isApprovedForAll[ownerOfToken][signer], "INVALID_SIGNER"); 
         }
         

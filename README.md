@@ -1,4 +1,4 @@
-# ERC721s
+# ERC721S
 Improvement to the `ERC721` standard, that introduces lockable NFTs. The locked asset can be used in any way except selling/transferring it.
 
 ## Abstract
@@ -25,18 +25,20 @@ This approach proposes a solution that is designed to be as minimal as possible.
 It only allows to lock the item (stating who will be able to unlock it) and unlock it when needed.
 
 ## Specification
-One mapping and two functions are added to the original `ERC721` to allow locking.
+One mapping, two internal functions and two public functions are added to the original `ERC721` to allow locking.
 ```    
     mapping(uint256 => address) public getLocked
     function _lock(address unlocker, uint256 id) internal virtual
     function _unlock(uint256 id) internal virtual
+    function lock(address unlocker, uint256 id) public
+    function unlock(uint256 id) public
 ```
 `getLocked` mapping serves to store the unlocker's addresses for the locked tokens. When there is zero address as value for the given key (tokenId), that means this token is not locked.
 
-Both `_lock` and `_unlock` internal functions, which are implemented in the standard `ERC721s.sol` itself, do not perform any check on who can actually lock and unlock. They just do the job required.
-All the checks are meant to be done in the implementation contract. It's because different projects can require a different approach for that. 
-In this repo, `MockNFT.sol` implementation allows locking by the holder and approved parties. However, some projects can limit it to only holder.
-At the same time, the implementation provided allows for unlocking only by the unlocker stated in the `getLocked` mapping. However, other projects can choose to allow unlocking for some extra contract.
+Both `_lock` and `_unlock` internal functions, which are implemented in the standard `ERC721s.sol` itself, do not perform any check on who can actually lock and unlock. They just do the job required. 
+Public `lock` function allows locking by the holder and approved parties. 
+Initially, it was supposed, that some projects can limit it to only holder, so the public function for the locking was not included in the standard itself. It turned out, that in most cases, using this contract with marketplaces requres for the standardized public interface for locking and also requires for the locking to be available for approved parties. So the implementation been included in the contract.
+The implementation provided allows for unlocking only by the unlocker stated in the `getLocked` mapping. 
 
 Aside from one mapping and two functions, there is a change to the `transferFrom` function. 
 ```
@@ -53,6 +55,7 @@ Aside from one mapping and two functions, there is a change to the `transferFrom
 ```
 It prevents the locked token from being transferred and allows for the unlocker to be able to transfer.
 The former feature is needed for the service contracts to be able to manage token during the service period.
+All the locks are removed when the token is being transferred.
 
 ## Rationale (Usecases)
 - **NFT-collateralised loans** Use your NFT as collateral for a loan without locking it on the lending protocol contract. Lock it on your wallet instead and continue enjoying all the utility of your NFT.
@@ -73,19 +76,16 @@ Our approach is that such a solution should be based on the concept of Wrapping.
 Blue-chip collection admins set up a wrapping contract (that aside from locking can implement permits for gasless listings or on-chain royalties) and manage it, so the source of trust for holders does not change.
 
 ## Reference Implementation
-`ERC721s.sol` contains the implementation of the standard itself.
-This exact implementation of the `ERC721s` standard provided in the repo is based on the [Solmate](https://github.com/Rari-Capital/solmate/tree/main/src) library.
+`ERC721S.sol` contains the implementation of the standard itself.
+This exact implementation of the `ERC721S` standard provided in the repo is based on the [Solmate](https://github.com/Rari-Capital/solmate/tree/main/src) library.
 It also features [ERC721a](https://www.erc721a.org/)-like gas-efficient batch minting.
 However, any implementation of the original `ERC721` standard can be supplemented with the aforementioned mapping and functions.
 
-`MockNFT.sol` is the mock implementation for the NFT based on `ERC721s`.
-It contains public `lock` and `unlock` functions, that verify is msg.sender authorized to lock and unlock and then call the corresponding internal function.
-`permitLock` function implements `EIP26212`-like signature verification, which allows for better UX when used with actual service contracts. 
+`ERC721SPermits.sol` is the extentded implementation that features `EIP26212`-like signature verification for the "approval" and "approval for all" procedures. The usage of `EIP26212`-like permits allows for better UX when used with actual service contracts and is highly recommended.
 
-`MockLockerContract.sol` contains a sample of usage of the `permitLock` function by external contracts.
+`MockNFT.sol` is the mock implementation for the NFT based on `ERC721S`. It is used for tests and can be used as reference.
 
-This implementation allows for a locker that has a permit to decide, what to state as an unlocker when calling `lock` function. 
-Other implementations can limit this, by allowing the locker to only state itself as an unlocker.
+`MockLockerContract.sol` contains reference implementation of different flows to lock and unlock NFTs by the service smart-contracts, like Rentals service smart-contract.
 
 ## Security Considerations
 As soon as the standard only introduces locking, there are a few things to be considered security-wise.
@@ -95,10 +95,12 @@ Another issue, that is common to all the implementation of locked NFTs concept i
 That can cause bad UX when the NFT is listed, but it is not possible to actually buy it, as NFT is locked from being transferred.
 That however can be solved in two ways:
 1. Before marketplaces adopt locked NFTs standard, every project can just update metadata and/or media depending on whether is the token locked or not.
-2. Later on, when there will be many projects implementing `ERC721s`, it will be easy for marketplaces to check if the token is locked or not by just calling the public `getLocked` function. If the token is locked, the "Purchase" button can be deactivated and/or the Lock icon can be shown next to such an asset. 
+2. Later on, when there will be many projects implementing `ERC721S`, it will be easy for marketplaces to check if the token is locked or not by just calling the public `getLocked` function. If the token is locked, the "Purchase" button can be deactivated and/or the Lock icon can be shown next to such an asset. 
+
+In the service smart-contracts, that works with `ERC721S` NFTs, `transferFrom` should always be used instead of `safeTransferFrom` to avoid reentrancy attacks.
 
 Extended implementations can have their own security considerations.
-For example, `MockNFT.sol` implementation provided in this repo, features `EIP2612`-like permit-based locking functionality.
+For example, `ERC721SPermits.sol` implementation provided in this repo, features `EIP2612`-like permit-based locking functionality.
 So it inherits all the [security considerations](https://eips.ethereum.org/EIPS/eip-2612#security-considerations) from `EIP-2612`. 
 
 ## Other implementations of lockable NFTs

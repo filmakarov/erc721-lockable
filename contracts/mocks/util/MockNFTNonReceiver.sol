@@ -3,7 +3,7 @@ pragma solidity ^0.8.11;
 
 import "@openzeppelin/contracts/utils/Strings.sol";
 
-contract MockMeta {  
+contract MockNFTNonReceiver {  
 
 using Strings for uint256;
 

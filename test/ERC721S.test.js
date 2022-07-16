@@ -288,11 +288,11 @@ describe('ERC721S MINTS', async function () {
 
   // safeMint to the NFT non-receiver contract does not work
   it('cannot _safeMint to NFT non-receiver contract', async function () {
-    const MockMeta = await ethers.getContractFactory('MockMeta', deployer);
-    mockMeta = await MockMeta.deploy("https://onchain.meta/");
+    const MockNonReceiver = await ethers.getContractFactory('MockNFTNonReceiver', deployer);
+    mockNonReceiver = await MockNonReceiver.deploy("https://onchain.meta/");
     
     await expect(
-      nftContract.connect(holder).mint(await mockMeta.address, 5),
+      nftContract.connect(holder).mint(await mockNonReceiver.address, 5),
     ).to.be.reverted;
   });
 

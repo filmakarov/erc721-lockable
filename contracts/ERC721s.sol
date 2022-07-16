@@ -93,7 +93,6 @@ abstract contract ERC721S {
 
     function approve(address spender, uint256 id) public virtual {
         address owner = ownerOf(id);
-
         require(msg.sender == owner || isApprovedForAll[owner][msg.sender], "NOT_AUTHORIZED");
         getApproved[id] = spender;
         emit Approval(owner, spender, id);
