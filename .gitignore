@@ -12,7 +12,7 @@ erc721s.code-workspace
 contracts/.DS_Store
 scripts/deploy2.js
 package-lock.json
-scripts/benchmark.js
+erc721s.code-workspace
 
 #Hardhat files
 cache
