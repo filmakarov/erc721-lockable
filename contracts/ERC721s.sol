@@ -85,7 +85,7 @@ abstract contract ERC721S {
      * @dev Public function to lock the token. Verifies if the msg.sender is the owner
      *      or approved party.
      */
-    function lock(address unlocker, uint256 id) public {
+    function lock(address unlocker, uint256 id) public virtual {
         address tokenOwner = ownerOf(id);
         require(msg.sender == tokenOwner || msg.sender == getApproved[id] || isApprovedForAll[tokenOwner][msg.sender]
         , "NOT_AUTHORIZED");
@@ -96,7 +96,7 @@ abstract contract ERC721S {
     /**
      * @dev Public function to unlock the token. Only the unlocker (stated at the time of locking) can unlock
      */
-    function unlock(uint256 id) public {
+    function unlock(uint256 id) public virtual {
         require(msg.sender == getLocked[id], "NOT_UNLOCKER");
         getLocked[id] = address(0);
     }
