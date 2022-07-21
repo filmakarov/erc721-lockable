@@ -14,8 +14,6 @@ abstract contract ERC721S {
 
     event Transfer(address indexed _from, address indexed _to, uint256 indexed _id);
 
-    event ConsecutiveTransfer(uint256 indexed fromTokenId, uint256 toTokenId, address indexed fromAddress, address indexed toAddress);
-
     event Approval(address indexed owner, address indexed spender, uint256 indexed id);
 
     event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
@@ -36,8 +34,8 @@ abstract contract ERC721S {
 
     uint256 public nextTokenIndex;
     mapping(uint256 => address) public owners;
-    mapping(uint256 => address) public getApproved;
-    mapping(address => mapping(address => bool)) public isApprovedForAll;
+    mapping(uint256 => address) internal _tokenApprovals;
+    mapping(address => mapping(address => bool)) internal _operatorApprovals;
     mapping(uint256 => bool) public isBurned;
     uint256 public burnedCounter;
 
@@ -50,12 +48,6 @@ abstract contract ERC721S {
     }
 
     /*///////////////////////////////////////////////////////////////
-                            ERC721s STORAGE                        
-    //////////////////////////////////////////////////////////////*/
-
-    mapping(uint256 => address) public getLocked;
-
-    /*///////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
@@ -66,57 +58,29 @@ abstract contract ERC721S {
     }
 
     /*///////////////////////////////////////////////////////////////
-                              ERC721s LOGIC
-    //////////////////////////////////////////////////////////////*/
-    
-    /**
-     * @dev Locks the token
-     */
-    function _lock(address unlocker, uint256 id) internal virtual {
-        getLocked[id] = unlocker;
-    }
-
-    /**
-     * @dev Unlocks the token
-     */
-    function _unlock(uint256 id) internal virtual {
-        getLocked[id] = address(0);
-    }
-
-    /**
-     * @dev Public function to lock the token. Verifies if the msg.sender is the owner
-     *      or approved party.
-     */
-    function lock(address unlocker, uint256 id) public virtual {
-        address tokenOwner = ownerOf(id);
-        require(msg.sender == tokenOwner || msg.sender == getApproved[id] || isApprovedForAll[tokenOwner][msg.sender]
-        , "NOT_AUTHORIZED");
-        require(getLocked[id] == address(0), "ALREADY_LOCKED"); 
-        getLocked[id] = unlocker;
-    }
-
-    /**
-     * @dev Public function to unlock the token. Only the unlocker (stated at the time of locking) can unlock
-     */
-    function unlock(uint256 id) public virtual {
-        require(msg.sender == getLocked[id], "NOT_UNLOCKER");
-        getLocked[id] = address(0);
-    }
-
-    /*///////////////////////////////////////////////////////////////
                               ERC721 LOGIC
     //////////////////////////////////////////////////////////////*/
 
     function approve(address spender, uint256 id) public virtual {
         address owner = ownerOf(id);
-        require(msg.sender == owner || isApprovedForAll[owner][msg.sender], "NOT_AUTHORIZED");
-        getApproved[id] = spender;
+        require(msg.sender == owner || _operatorApprovals[owner][msg.sender], "NOT_AUTHORIZED");
+        _tokenApprovals[id] = spender;
         emit Approval(owner, spender, id);
     }
 
     function setApprovalForAll(address operator, bool approved) public virtual {
-        isApprovedForAll[msg.sender][operator] = approved;
+        _operatorApprovals[msg.sender][operator] = approved;
         emit ApprovalForAll(msg.sender, operator, approved);
+    }
+
+    function getApproved(uint256 tokenId) public view virtual returns (address) {
+        require(_exists(tokenId), "ERC721S: approved query for nonexistent token");
+
+        return _tokenApprovals[tokenId];
+    }
+
+    function isApprovedForAll(address owner, address operator) public view virtual returns (bool) {
+        return _operatorApprovals[owner][operator];
     }
 
     function transferFrom(
@@ -128,16 +92,15 @@ abstract contract ERC721S {
         require(from == ownerOf(id), "WRONG_FROM");
         require(to != address(0), "INVALID_RECIPIENT");
 
-        // token should not be locked or msg sender should be unlocker
-        require(getLocked[id] == address(0) || msg.sender == getLocked[id], "LOCKED");
-
         // msg.sender should be authorized to transfer
         // i.e. msg.sender should be owner, approved or unlocker
         require(
-            msg.sender == getLocked[id] || msg.sender == from || 
-            msg.sender == getApproved[id] || isApprovedForAll[from][msg.sender], 
+            msg.sender == from || 
+            msg.sender == getApproved(id) || isApprovedForAll(from, msg.sender), 
             "NOT_AUTHORIZED"
         );
+
+        _beforeTokenTransfers(from, to, id, 1);
 
         // Underflow of the sender's balance is impossible because we check for
         // ownership above and the recipient's balance can't realistically overflow.
@@ -156,10 +119,10 @@ abstract contract ERC721S {
             }
         }
 
-        delete getApproved[id];
-        delete getLocked[id];
+        delete _tokenApprovals[id];
 
         emit Transfer(from, to, id);
+        _afterTokenTransfers(from, to, id, 1);
     }
 
     function safeTransferFrom(
@@ -253,6 +216,8 @@ abstract contract ERC721S {
 
         uint256 startTokenIndex = nextTokenIndex;
 
+        _beforeTokenTransfers(address(0), to, startTokenIndex, qty);
+
         // put just the first owner in the batch
         owners[nextTokenIndex]=to;
 
@@ -272,12 +237,16 @@ abstract contract ERC721S {
         for (uint256 i=startTokenIndex; i<nextTokenIndex; i++) {
             emit Transfer(address(0), to, i);
         }
+
+        _afterTokenTransfers(address(0), to, startTokenIndex, qty);
         
     }
 
     function _burn(uint256 id) internal virtual {
         address owner = ownerOf(id);
         require(owner != address(0), "NOT_MINTED");
+
+        _beforeTokenTransfers(owner, address(0), id, 1);
 
         // Ownership check above ensures no underflow.
         unchecked {
@@ -294,10 +263,10 @@ abstract contract ERC721S {
             }
         }
 
-        delete getApproved[id];
-        delete getLocked[id];
+        delete _tokenApprovals[id];
 
         emit Transfer(owner, address(0), id);
+        _afterTokenTransfers(owner, address(0), id, 1);
     }
     
 
@@ -330,6 +299,52 @@ abstract contract ERC721S {
             "UNSAFE_RECIPIENT"
         );
     }
+
+    /**
+     * @dev Hook that is called before a set of serially-ordered token IDs
+     * are about to be transferred. This includes minting.
+     * And also called before burning one token.
+     *
+     * `startTokenId` - the first token ID to be transferred.
+     * `quantity` - the amount to be transferred.
+     *
+     * Calling conditions:
+     *
+     * - When `from` and `to` are both non-zero, `from`'s `tokenId` will be
+     * transferred to `to`.
+     * - When `from` is zero, `tokenId` will be minted for `to`.
+     * - When `to` is zero, `tokenId` will be burned by `from`.
+     * - `from` and `to` are never both zero.
+     */
+    function _beforeTokenTransfers(
+        address from,
+        address to,
+        uint256 startTokenId,
+        uint256 quantity
+    ) internal virtual {}
+
+    /**
+     * @dev Hook that is called after a set of serially-ordered token IDs
+     * have been transferred. This includes minting.
+     * And also called after one token has been burned.
+     *
+     * `startTokenId` - the first token ID to be transferred.
+     * `quantity` - the amount to be transferred.
+     *
+     * Calling conditions:
+     *
+     * - When `from` and `to` are both non-zero, `from`'s `tokenId` has been
+     * transferred to `to`.
+     * - When `from` is zero, `tokenId` has been minted for `to`.
+     * - When `to` is zero, `tokenId` has been burned by `from`.
+     * - `from` and `to` are never both zero.
+     */
+    function _afterTokenTransfers(
+        address from,
+        address to,
+        uint256 startTokenId,
+        uint256 quantity
+    ) internal virtual {}
 
 }
 

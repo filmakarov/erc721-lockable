@@ -4,12 +4,12 @@ pragma solidity ^0.8.11;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
-import "../ERC721SPermits.sol";
+import "../ERC721SLockablePermittable.sol";
 
 /// @title MockNFT implementing ERC721S with Permits
 /// @author of contract Fil Makarov (@filmakarov)
 
-contract MockNFT is ERC721SPermits, Ownable {  
+contract MockNFT is ERC721SLockablePermittable, Ownable {  
 
 using Strings for uint256;
 

@@ -2,12 +2,25 @@
 pragma solidity ^0.8.11;
 
 import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
-import "./ERC721S.sol";
+import "./ERC721SLockable.sol";
 
 /// @title ERC721S Extension with EIP2612-like permits
+/// @dev   Implements EIP4494 and additionally permitAll
 /// @author of contract Fil Makarov (@filmakarov)
 
-abstract contract ERC721SPermits is ERC721S {  
+abstract contract ERC721SLockablePermittable is ERC721SLockable {  
+
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        override
+        returns (bool)
+    {
+        return
+            interfaceId == 0x5604e225 ||           // _INTERFACE_ID_ERC4494 = 0x5604e225
+            super.supportsInterface(interfaceId);
+    }
 
     /*///////////////////////////////////////////////////////////////
                             EIP-2612-LIKE STORAGE
@@ -71,10 +84,10 @@ abstract contract ERC721SPermits is ERC721S {
             // Signature is good, now should check if signer had rights to approve this token
             // Like, only owner or operator can user approve functions, 
             // only owner or operator can sign permits for approval. 
-            require(signer == ownerOfToken || isApprovedForAll[ownerOfToken][signer], "INVALID_SIGNER"); 
+            require(signer == ownerOfToken || isApprovedForAll(ownerOfToken, signer), "INVALID_SIGNER"); 
         }
         
-        getApproved[tokenId] = spender;
+        _tokenApprovals[tokenId] = spender;
 
         emit Approval(ownerOfToken, spender, tokenId);
     }
@@ -114,7 +127,7 @@ abstract contract ERC721SPermits is ERC721S {
         // that does not allow current operators to make isApprovedForAll[owner][one_more_operator] = true
         // but current operator can still aprove explicit tokens with permit(), that is enough I guess
         // and better for security
-        isApprovedForAll[signer][operator] = true;
+        _operatorApprovals[signer][operator] = true;
 
         emit ApprovalForAll(signer, operator, true);
     }
