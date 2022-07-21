@@ -14,6 +14,8 @@ abstract contract ERC721S {
 
     event Transfer(address indexed _from, address indexed _to, uint256 indexed _id);
 
+    event ConsecutiveTransfer(uint256 indexed fromTokenId, uint256 toTokenId, address indexed fromAddress, address indexed toAddress);
+
     event Approval(address indexed owner, address indexed spender, uint256 indexed id);
 
     event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
@@ -225,7 +227,7 @@ abstract contract ERC721S {
                               ERC165 LOGIC
     //////////////////////////////////////////////////////////////*/
 
-    function supportsInterface(bytes4 interfaceId) public pure virtual returns (bool) {
+    function supportsInterface(bytes4 interfaceId) public view virtual returns (bool) {
         return
             interfaceId == 0x01ffc9a7 || // ERC165 Interface ID for ERC165
             interfaceId == 0x80ac58cd || // ERC165 Interface ID for ERC721
@@ -270,6 +272,7 @@ abstract contract ERC721S {
         for (uint256 i=startTokenIndex; i<nextTokenIndex; i++) {
             emit Transfer(address(0), to, i);
         }
+        
     }
 
     function _burn(uint256 id) internal virtual {
