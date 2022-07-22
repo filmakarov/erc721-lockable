@@ -8,7 +8,7 @@ const { ZERO_ADDRESS } = require('@openzeppelin/test-helpers/src/constants');
 
 const toBN = ethers.BigNumber.from;
 
-describe('ERC721SPermit TESTS', () => {
+describe('ERC721 OZ Lockable Permittable TESTS', () => {
   let deployer;
   let random;
   let random2;
@@ -19,6 +19,7 @@ describe('ERC721SPermit TESTS', () => {
   let operator;
   const ADDRESS_ZERO = ethers.constants.AddressZero;
   const mybase = "https://mybase.com/json/";
+  let globalStartIndex = 0;
 
   const provider = ethers.provider;
   const { hexlify, toUtf8Bytes } = ethers.utils;
@@ -99,7 +100,7 @@ async function signPermitAll(operator, nonce, deadline, signer) {
       // get chainId
       chainId = await ethers.provider.getNetwork().then((n) => n.chainId);
 
-      const MockNFT = await ethers.getContractFactory('MockNFTERC721S', deployer);
+      const MockNFT = await ethers.getContractFactory('MockNFTERC721OZ', deployer);
       nftContract = await MockNFT.deploy(mybase);
   });
 
@@ -107,45 +108,27 @@ async function signPermitAll(operator, nonce, deadline, signer) {
     it('deploys', async function () {
         expect(nftContract.address).to.not.equal("");
     });
-    it('deploys with correct base URI', async function () {
-      const mintQty = 3;
-      await nftContract.connect(random).mint(await random.getAddress(), mintQty);
-      /*
-      console.log(await nftContract.nextTokenIndex());
-      for (let i =0; i<await nftContract.nextTokenIndex(); i++) {
-        console.log(await nftContract.owners(i));
-      }
-      */
-      expect(await nftContract.tokenURI((await nftContract.nextTokenIndex()).sub(1))).to.include(mybase);      
-    });
-    it('deploys with 0 tokens', async function () {
-      expect(await nftContract.totalMinted()).to.equal(0);
-    });
-    it('has correct nextTokenIndex', async function () {
-      expect(await nftContract.nextTokenIndex()).to.equal(5);
-      //console.log("Next Token Id: " , await nftContract.nextTokenIndex());
-    });
   });
 
      /*  ====== ====== ====== ====== ====== ======
     *   
-    *   ERC721S PERMITS TESTS
+    *   ERC721 OZ PERMITS TESTS
     * 
     * ====== ====== ====== ====== ======  ====== */
 
-     describe('ERC721S Permits tests', async function () {
+     describe('ERC721 OZ Permits tests', async function () {
 
       beforeEach(async () => {      
         let txPrelMint = await nftContract.connect(holder).mint(await holder.getAddress(), 10);
-        await txPrelMint.wait();
+        let result = await txPrelMint.wait();
+        globalStartIndex = result.events[0].args.tokenId;
         //console.log((await nftContract.totalSupply()).toString());
       });
 
       // Regular permits
       it('Permit issued by a holder for spender works', async function () {
-        let minted = (await nftContract.totalMinted());
-        let startIndex = (await nftContract.nextTokenIndex()).sub(minted);
-        let randomTokenId = startIndex.add(Math.floor(Math.random() * minted));
+        let randomTokenId = globalStartIndex.add(Math.floor(Math.random() * 10));
+        console.log("tokenId: ", randomTokenId);;
         
         const deadline = parseInt(+new Date() / 1000) + 7 * 24 * 60 * 60;
 
@@ -170,9 +153,7 @@ async function signPermitAll(operator, nonce, deadline, signer) {
       });
 
       it('Permit issued by a holder for spender works even if not spender uses it, but it still approves spender', async function () {
-        let minted = (await nftContract.totalMinted());
-        let startIndex = (await nftContract.nextTokenIndex()).sub(minted);
-        let randomTokenId = startIndex.add(Math.floor(Math.random() * minted));
+        let randomTokenId = globalStartIndex.add(Math.floor(Math.random() * 10));
         
         const deadline = parseInt(+new Date() / 1000) + 7 * 24 * 60 * 60;
 
@@ -198,9 +179,7 @@ async function signPermitAll(operator, nonce, deadline, signer) {
 
       
       it('Permit by a non holder does not work', async function () {
-        let minted = (await nftContract.totalMinted());
-        let startIndex = (await nftContract.nextTokenIndex()).sub(minted);
-        let randomTokenId = startIndex.add(Math.floor(Math.random() * minted));
+        let randomTokenId = globalStartIndex.add(Math.floor(Math.random() * 10));
         
         const deadline = parseInt(+new Date() / 1000) + 7 * 24 * 60 * 60;
 
@@ -225,9 +204,7 @@ async function signPermitAll(operator, nonce, deadline, signer) {
 
       
       it('Mocking signer does not work', async function () {
-        let minted = (await nftContract.totalMinted());
-        let startIndex = (await nftContract.nextTokenIndex()).sub(minted);
-        let randomTokenId = startIndex.add(Math.floor(Math.random() * minted));
+        let randomTokenId = globalStartIndex.add(Math.floor(Math.random() * 10));
         
         const deadline = parseInt(+new Date() / 1000) + 7 * 24 * 60 * 60;
 
@@ -252,9 +229,7 @@ async function signPermitAll(operator, nonce, deadline, signer) {
 
       
       it('Can not use permit issued for another address', async function () {
-        let minted = (await nftContract.totalMinted());
-        let startIndex = (await nftContract.nextTokenIndex()).sub(minted);
-        let randomTokenId = startIndex.add(Math.floor(Math.random() * minted));
+        let randomTokenId = globalStartIndex.add(Math.floor(Math.random() * 10));
         
         const deadline = parseInt(+new Date() / 1000) + 7 * 24 * 60 * 60;
 
@@ -278,9 +253,7 @@ async function signPermitAll(operator, nonce, deadline, signer) {
       });
 
       it('Permit issued by an operator for spender works', async function () {
-        let minted = (await nftContract.totalMinted());
-        let startIndex = (await nftContract.nextTokenIndex()).sub(minted);
-        let randomTokenId = startIndex.add(Math.floor(Math.random() * minted));
+        let randomTokenId = globalStartIndex.add(Math.floor(Math.random() * 10));
         
         const deadline = parseInt(+new Date() / 1000) + 7 * 24 * 60 * 60;
 
@@ -307,9 +280,7 @@ async function signPermitAll(operator, nonce, deadline, signer) {
       });
 
       it('Can not reuse permit', async function () {
-        let minted = (await nftContract.totalMinted());
-        let startIndex = (await nftContract.nextTokenIndex()).sub(minted);
-        let randomTokenId = startIndex.add(Math.floor(Math.random() * minted));
+        let randomTokenId = globalStartIndex.add(Math.floor(Math.random() * 10));
         
         const deadline = parseInt(+new Date() / 1000) + 7 * 24 * 60 * 60;
 
@@ -341,9 +312,7 @@ async function signPermitAll(operator, nonce, deadline, signer) {
       });
 
       it('Cannot use expired permit', async function () {
-        let minted = (await nftContract.totalMinted());
-        let startIndex = (await nftContract.nextTokenIndex()).sub(minted);
-        let randomTokenId = startIndex.add(Math.floor(Math.random() * minted));
+        let randomTokenId = globalStartIndex.add(Math.floor(Math.random() * 10));
 
         const activePeriod = 5;
         
@@ -378,7 +347,7 @@ async function signPermitAll(operator, nonce, deadline, signer) {
 
     /*  ====== ====== ====== ====== ====== ======
    *   
-   *   ERC721S PERMIT FOR ALL TESTS
+   *   ERC721 A PERMIT FOR ALL TESTS
    * 
    * ====== ====== ====== ====== ======  ====== */
 

@@ -1,16 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0;
 
-import './ERC721S.sol';
-import './IERC721Lockable.sol';
+import '../IERC721Lockable.sol';
 import '@openzeppelin/contracts/utils/introspection/ERC165.sol';
+import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 
 
-/// @title Lockable Extension
-/// @author filio.eth (https://twitter.com/filmakarov)
+/// @title Lockable Extension for ERC721
 /// @dev Check the repo and readme at https://github.com/filmakarov/erc721s 
 
-abstract contract ERC721SLockable is ERC721S, IERC721Lockable {
+abstract contract ERC721OZLockable is ERC721, IERC721Lockable {
 
     /*///////////////////////////////////////////////////////////////
                             LOCKABLE EXTENSION STORAGE                        
@@ -43,11 +42,11 @@ abstract contract ERC721SLockable is ERC721S, IERC721Lockable {
 
     function lock(address unlocker, uint256 id) public virtual {
         address tokenOwner = ownerOf(id);
-        require(msg.sender == tokenOwner || msg.sender == getApproved(id) || isApprovedForAll(tokenOwner, msg.sender)
+        require(msg.sender == tokenOwner || isApprovedForAll(tokenOwner, msg.sender)
         , "NOT_AUTHORIZED");
         require(unlockers[id] == address(0), "ALREADY_LOCKED"); 
         unlockers[id] = unlocker;
-        super.approve(unlocker, id); //approve unlocker, so unlocker will be able to transfer
+        _approve(unlocker, id);
     }
 
     /**
@@ -62,47 +61,33 @@ abstract contract ERC721SLockable is ERC721S, IERC721Lockable {
         return unlockers[tokenId];
     }
 
-    function _beforeTokenTransfers(
+    function _beforeTokenTransfer(
         address from,
         address to,
-        uint256 startTokenId,
-        uint256 quantity
+        uint256 tokenId
     ) internal virtual override {
-        // if it is a Transfer or Burn, we always deal with one token, that is startTokenId
+        // if it is a Transfer or Burn
         if (from != address(0)) { 
             // token should not be locked or msg.sender should be unlocker to do that
-            require(getLocked(startTokenId) == address(0) || msg.sender == getLocked(startTokenId), "LOCKED");
+            require(getLocked(tokenId) == address(0) || msg.sender == getLocked(tokenId), "LOCKED");
         }
     }
-
-    /*
-    // override getApproved
-    // Unlocker of the token is always approved thus able to transfer this token
-    function getApproved(uint256 tokenId) public view virtual override returns (address) {
-        address unlocker = getLocked(tokenId);
-        if (msg.sender == unlocker) {
-            return unlocker;
-        } else {
-            return super.getApproved(tokenId);
-        }
-    } 
-    */
 
     function approve(address to, uint256 tokenId) public virtual override {
         require (getLocked(tokenId) == address(0), "Can not approve locked token");
         super.approve(to, tokenId);
     }
+    
 
-    function _afterTokenTransfers(
+    function _afterTokenTransfer(
         address from,
         address to,
-        uint256 startTokenId,
-        uint256 quantity
+        uint256 tokenId
     ) internal virtual override {
         // if it is a Transfer or Burn, we always deal with one token, that is startTokenId
         if (from != address(0)) { 
             // clear locks
-            delete unlockers[startTokenId];
+            delete unlockers[tokenId];
         }
     }
 

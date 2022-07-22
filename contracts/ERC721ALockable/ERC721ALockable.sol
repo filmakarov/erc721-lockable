@@ -1,16 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0;
 
-import './ERC721S.sol';
-import './IERC721Lockable.sol';
+import "erc721a/contracts/ERC721A.sol";
+import '../IERC721Lockable.sol';
 import '@openzeppelin/contracts/utils/introspection/ERC165.sol';
 
 
-/// @title Lockable Extension
-/// @author filio.eth (https://twitter.com/filmakarov)
+/// @title Lockable Extension fro ERC721A
 /// @dev Check the repo and readme at https://github.com/filmakarov/erc721s 
 
-abstract contract ERC721SLockable is ERC721S, IERC721Lockable {
+abstract contract ERC721ALockable is ERC721A, IERC721Lockable {
 
     /*///////////////////////////////////////////////////////////////
                             LOCKABLE EXTENSION STORAGE                        
@@ -43,11 +42,11 @@ abstract contract ERC721SLockable is ERC721S, IERC721Lockable {
 
     function lock(address unlocker, uint256 id) public virtual {
         address tokenOwner = ownerOf(id);
-        require(msg.sender == tokenOwner || msg.sender == getApproved(id) || isApprovedForAll(tokenOwner, msg.sender)
+        require(msg.sender == tokenOwner || isApprovedForAll(tokenOwner, msg.sender)
         , "NOT_AUTHORIZED");
         require(unlockers[id] == address(0), "ALREADY_LOCKED"); 
         unlockers[id] = unlocker;
-        super.approve(unlocker, id); //approve unlocker, so unlocker will be able to transfer
+        super.approve(unlocker, id);
     }
 
     /**
@@ -75,7 +74,7 @@ abstract contract ERC721SLockable is ERC721S, IERC721Lockable {
         }
     }
 
-    /*
+/*
     // override getApproved
     // Unlocker of the token is always approved thus able to transfer this token
     function getApproved(uint256 tokenId) public view virtual override returns (address) {
@@ -86,12 +85,13 @@ abstract contract ERC721SLockable is ERC721S, IERC721Lockable {
             return super.getApproved(tokenId);
         }
     } 
-    */
+*/
 
     function approve(address to, uint256 tokenId) public virtual override {
         require (getLocked(tokenId) == address(0), "Can not approve locked token");
         super.approve(to, tokenId);
     }
+    
 
     function _afterTokenTransfers(
         address from,

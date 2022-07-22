@@ -23,95 +23,13 @@ describe('ERC721S TESTS', () => {
   const provider = ethers.provider;
   const { hexlify, toUtf8Bytes } = ethers.utils;
 
-async function signPermit(spender, tokenId, nonce, deadline, signer) {
-  //inspired by @dievardump's implementation
-  const typedData = {
-      types: {
-          Permit: [
-              { name: 'spender', type: 'address' },
-              { name: 'tokenId', type: 'uint256' },
-              { name: 'nonce', type: 'uint256' },
-              { name: 'deadline', type: 'uint256' },
-          ],
-      },
-      primaryType: 'Permit',
-      domain: {
-          name: await nftContract.name(),
-          version: '1',
-          chainId: chainId,
-          verifyingContract: nftContract.address,
-      },
-      message: {
-          spender,
-          tokenId,
-          nonce,
-          deadline,
-      },
-  };
-
-  const signature = await signer._signTypedData(
-      typedData.domain,
-      { Permit: typedData.types.Permit },
-      typedData.message,
-  );
-
-  return signature;
-}
-
-async function signPermitAll(operator, nonce, deadline, signer) {
-  //inspired by @dievardump's implementation
-  const typedData = {
-      types: {
-          Permit: [
-              { name: 'operator', type: 'address' },
-              { name: 'nonce', type: 'uint256' },
-              { name: 'deadline', type: 'uint256' },
-          ],
-      },
-      primaryType: 'Permit',
-      domain: {
-          name: await nftContract.name(),
-          version: '1',
-          chainId: chainId,
-          verifyingContract: nftContract.address,
-      },
-      message: {
-          operator,
-          nonce,
-          deadline,
-      },
-  };
-
-  const signature = await signer._signTypedData(
-      typedData.domain,
-      { Permit: typedData.types.Permit },
-      typedData.message,
-  );
-
-  return signature;
-}
-
-async function signAllowance(account, mintQty, allowanceId, signerAccount = allowancesigner) {
-  const idBN = toBN(allowanceId).shl(128);
-  const nonce = idBN.add(mintQty);
-  const message = await minterContr.createMessage(account, nonce);
-
-  //const formattedMessage = hexlify(toUtf8Bytes(message));
-  const formattedMessage = hexlify(message);
-  const addr = signerAccount.address.toLowerCase();
-
-  const signature = await provider.send('eth_sign', [addr, formattedMessage]);
-
-  return { nonce, signature };
-}
-
   beforeEach(async () => {
       [deployer, random, random2, unlocker, holder, spender, allowancesigner, operator] = await ethers.getSigners();
 
       // get chainId
       chainId = await ethers.provider.getNetwork().then((n) => n.chainId);
 
-      const MockNFT = await ethers.getContractFactory('MockNFT', deployer);
+      const MockNFT = await ethers.getContractFactory('MockNFTERC721S', deployer);
       nftContract = await MockNFT.deploy(mybase);
   });
 
@@ -941,6 +859,23 @@ describe('ERC721S BURNS', async function () {
 
   });
 
+  it('can not burn locked token', async function () {
+    let minted = (await nftContract.totalMinted());
+    let startIndex = (await nftContract.nextTokenIndex()).sub(minted);
+    let randomTokenId = startIndex.add(Math.floor(Math.random() * minted));
+
+    let tx = await nftContract.connect(holder).lock(unlocker.getAddress(), randomTokenId);
+    await tx.wait();
+
+    await expect(
+      nftContract.connect(holder).burn(randomTokenId),
+    ).to.be.revertedWith("LOCKED");
+
+  });
+
+  // Can't burn locked token!
+
+
   });
 
      /*  ====== ====== ====== ====== ====== ======
@@ -977,21 +912,20 @@ describe('ERC721S BURNS', async function () {
         ).to.be.revertedWith('NOT_AUTHORIZED');
       });
 
-      // Approved users can lock
-      it('Approved can lock token', async function () {
+      it('Owner can not approve locked token', async function () {
+        
         let minted = (await nftContract.totalMinted());
         let startIndex = (await nftContract.nextTokenIndex()).sub(minted);
         let randomTokenId = startIndex.add(Math.floor(Math.random() * minted));
 
-        //check that before approval was not able to lock
-        await expect(
-          nftContract.connect(random2).lock(await unlocker.getAddress(), randomTokenId),
-        ).to.be.revertedWith('NOT_AUTHORIZED');
-
-        await nftContract.connect(holder).approve(await random2.getAddress(), randomTokenId);
-        await nftContract.connect(random2).lock(await unlocker.getAddress(), randomTokenId);
+        await nftContract.connect(holder).lock(await unlocker.getAddress(), randomTokenId);
 
         expect(await nftContract.getLocked(randomTokenId)).to.be.equal(await unlocker.getAddress());
+
+        await expect(
+          nftContract.connect(holder).approve(await random2.getAddress(), randomTokenId),
+        ).to.be.revertedWith('Can not approve locked token');
+
       });
 
       it('Approved For All can lock token', async function () {
@@ -1013,27 +947,6 @@ describe('ERC721S BURNS', async function () {
         await nftContract.connect(operator).lock(await unlocker.getAddress(), randomTokenId);
 
         expect(await nftContract.getLocked(randomTokenId)).to.be.equal(await unlocker.getAddress());
-      });
-
-      // Approved users can not unlock
-       it('Approved can lock token but not unlock', async function () {
-        let minted = (await nftContract.totalMinted());
-        let startIndex = (await nftContract.nextTokenIndex()).sub(minted);
-        let randomTokenId = startIndex.add(Math.floor(Math.random() * minted));
-
-        //check that before approval was not able to lock
-        await expect(
-          nftContract.connect(random2).lock(await unlocker.getAddress(), randomTokenId)
-        ).to.be.revertedWith('NOT_AUTHORIZED');
-
-        await nftContract.connect(holder).approve(await random2.getAddress(), randomTokenId);
-        await nftContract.connect(random2).lock(await unlocker.getAddress(), randomTokenId);
-
-        expect(await nftContract.getLocked(randomTokenId)).to.be.equal(await unlocker.getAddress());
-
-        await expect(
-          nftContract.connect(random2).unlock(randomTokenId),
-        ).to.be.revertedWith('NOT_UNLOCKER');
       });
 
       it('Non unlocker even holder can not unlock', async function () {
