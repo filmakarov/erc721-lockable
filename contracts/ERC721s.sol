@@ -79,6 +79,44 @@ abstract contract ERC721S {
     }
 
     /*///////////////////////////////////////////////////////////////
+                              OWNERSHIPS
+    //////////////////////////////////////////////////////////////*/
+
+    function _exists(uint256 id) internal view returns (bool) {
+        return (id < nextTokenIndex && !isBurned[id] && id >= _startTokenIndex());
+    }
+
+    function ownerOf(uint256 id) public view returns (address) {
+        return address(uint160( _packedOwnershipOf(id) ));
+    }
+
+    function _packedOwnershipOf(uint256 id) internal view returns (uint256) {
+        if (id >= _startTokenIndex()) {
+            if (id<nextTokenIndex) {
+                if (!isBurned[id]) { 
+                    uint256 curr = id;
+                    unchecked {
+                        uint256 packed = _packedOwnerships[curr];
+                        
+                        while (packed == 0) {
+                            packed = _packedOwnerships[--curr];
+                        }
+                        return packed;
+                    }
+                }
+            }
+        }
+        revert('ERC721S: Token does not exist');
+    }
+
+    function _packOwnership(address owner) internal virtual returns (uint256 result) {
+        assembly {
+            owner := and(owner, ADDRESS_BITMASK)
+            result := or(owner, shl(160, timestamp()))
+        }
+    }
+
+    /*///////////////////////////////////////////////////////////////
                               TRANSFERS LOGIC
     //////////////////////////////////////////////////////////////*/
 
@@ -158,44 +196,6 @@ abstract contract ERC721S {
                 ERC721TokenReceiver.onERC721Received.selector,
             "ERC721S: Transfer to unsafe recepient"
         );
-    }
-
-    /*///////////////////////////////////////////////////////////////
-                              OWNERSHIPS
-    //////////////////////////////////////////////////////////////*/
-
-    function _exists(uint256 id) internal view returns (bool) {
-        return (id < nextTokenIndex && !isBurned[id] && id >= _startTokenIndex());
-    }
-
-    function ownerOf(uint256 id) public view returns (address) {
-        return address(uint160( _packedOwnershipOf(id) ));
-    }
-
-    function _packedOwnershipOf(uint256 id) internal view returns (uint256) {
-        if (id >= _startTokenIndex()) {
-            if (id<nextTokenIndex) {
-                if (!isBurned[id]) { 
-                    uint256 curr = id;
-                    unchecked {
-                        uint256 packed = _packedOwnerships[curr];
-                        
-                        while (packed == 0) {
-                            packed = _packedOwnerships[--curr];
-                        }
-                        return packed;
-                    }
-                }
-            }
-        }
-        revert('ERC721S: Token does not exist');
-    }
-
-    function _packOwnership(address owner) internal virtual returns (uint256 result) {
-        assembly {
-            owner := and(owner, ADDRESS_BITMASK)
-            result := or(owner, shl(160, timestamp()))
-        }
     }
 
     /*///////////////////////////////////////////////////////////////
