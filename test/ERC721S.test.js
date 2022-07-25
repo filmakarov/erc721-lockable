@@ -134,7 +134,7 @@ describe('ERC721S TESTS', () => {
 
       await expect(
         nftContract.connect(random).approve(spender.getAddress(), randomTokenId),
-      ).to.be.revertedWith('NOT_AUTHORIZED');
+      ).to.be.revertedWith('ERC721S: Not authorized to approve');
     });
   });
 
@@ -164,20 +164,21 @@ describe('ERC721S MINTS', async function () {
       //console.log(await nftContract.ownerOf(i));
       expect(await nftContract.ownerOf(i)).to.equal(await holder.getAddress());
     }
+
   });
 
   // can not mint to 0 address
   it('can not mint to 0 address', async function () {    
     await expect(
       nftContract.connect(holder).mint(ZERO_ADDRESS, 5),
-    ).to.be.revertedWith("INVALID_RECIPIENT");
+    ).to.be.revertedWith("ERC721S: Can not mint to 0 address");
   });
 
   // can not mint 0 tokens
   it('can not mint 0 tokens', async function () {    
     await expect(
       nftContract.connect(holder).mint(await random2.getAddress(), 0),
-    ).to.be.revertedWith("CAN_NOT_MINT_0");
+    ).to.be.revertedWith("ERC721S: Can not mint 0 tokens");
   });
 
   // owner for the batch head recorded correctly
@@ -190,7 +191,7 @@ describe('ERC721S MINTS', async function () {
 
     expect(await nftContract.balanceOf(await holder.getAddress())).to.equal(balBefore.add(mintQty));
     let batchHeadId = (await nftContract.nextTokenIndex()).sub(mintQty);
-    expect(await nftContract.owners(batchHeadId)).to.equal(await holder.getAddress());
+    expect(await nftContract.ownerOf(batchHeadId)).to.equal(await holder.getAddress());
   });
 
   // totalMinted increased correctly
@@ -220,7 +221,7 @@ describe('ERC721S MINTS', async function () {
     
     await expect(
       nftContract.connect(holder).mint(await mockUnsafe.address, 5),
-    ).to.be.revertedWith("UNSAFE_RECIPIENT");
+    ).to.be.revertedWith("ERC721S: Mint to unsafe recepient");
   });
 
   // safeMint to the NFT receiver contract works
@@ -262,6 +263,7 @@ describe('ERC721S MINTS', async function () {
       await tx.wait();
 
       expect(await nftContract.ownerOf(randomTokenId)).to.equal(await random.getAddress());
+
     });
 
     it('can not transfer from non owner', async function () { 
@@ -271,7 +273,7 @@ describe('ERC721S MINTS', async function () {
 
       await expect(
         nftContract.connect(random).transferFrom(random2.getAddress(), random.getAddress(), randomTokenId),
-      ).to.be.revertedWith('WRONG_FROM');
+      ).to.be.revertedWith('ERC721S: From is not the owner');
     });
 
     it('can not transfer to zero address', async function () { 
@@ -281,7 +283,7 @@ describe('ERC721S MINTS', async function () {
 
       await expect(
         nftContract.connect(holder).transferFrom(holder.getAddress(), ZERO_ADDRESS, randomTokenId),
-      ).to.be.revertedWith('INVALID_RECIPIENT');
+      ).to.be.revertedWith('ERC721S: Can not transfer to 0 address');
     });
 
     it('owner can not transfer locked token', async function () {
@@ -293,7 +295,7 @@ describe('ERC721S MINTS', async function () {
 
       await expect(
         nftContract.connect(holder).transferFrom(await holder.getAddress(), await random2.getAddress(), randomTokenId),
-      ).to.be.revertedWith('LOCKED');
+      ).to.be.revertedWith('Lockable: token is locked');
     });
 
     it('Unlocker can transfer locked token and it unlocks after transfer', async function () {
@@ -354,7 +356,7 @@ describe('ERC721S MINTS', async function () {
 
       await expect(
         nftContract.connect(random).transferFrom(holder.getAddress(), random2.getAddress(), randomTokenId),
-      ).to.be.revertedWith('NOT_AUTHORIZED');
+      ).to.be.revertedWith('ERC721S: Not authorized to transfer');
     });
 
     it('spender can transfer', async function () { 
@@ -415,7 +417,7 @@ describe('ERC721S MINTS', async function () {
 
       await expect(
         nftContract.connect(holder)["safeTransferFrom(address,address,uint256)"](await holder.getAddress(), await mockUnsafe.address, randomTokenId),
-      ).to.be.revertedWith("UNSAFE_RECIPIENT");
+      ).to.be.revertedWith("ERC721S: Transfer to unsafe recepient");
     });
 
     // safeTransfer to the NFT receiver contract works
@@ -521,7 +523,7 @@ describe('ERC721S BURNS', async function () {
     // ownerOf reverts for burned token
     await expect(
       nftContract.ownerOf(randomTokenId),
-    ).to.be.revertedWith("NOT_MINTED_YET_OR_BURNED");
+    ).to.be.revertedWith("ERC721S: Token does not exist");
     
     // total supply decreases
     expect(await nftContract.totalSupply()).to.be.equal(supplyBefore.sub(1));
@@ -557,7 +559,7 @@ describe('ERC721S BURNS', async function () {
       // ownerOf reverts for burned token
       await expect(
         nftContract.ownerOf(randomTokenId),
-      ).to.be.revertedWith("NOT_MINTED_YET_OR_BURNED");
+      ).to.be.revertedWith("ERC721S: Token does not exist");
       
       // total supply decreases
       expect(await nftContract.totalSupply()).to.be.equal(supplyBefore.sub(1));
@@ -583,9 +585,9 @@ describe('ERC721S BURNS', async function () {
     for (let i=1; i<mintQty; i++ ) {
       expect(await nftContract.ownerOf(nextTokenBefore.add(i))).to.equal(await random.getAddress());
       if (i==1) {
-        expect(await nftContract.owners(nextTokenBefore.add(i))).to.equal(await random.getAddress()); 
+        expect(await nftContract.ownerOf(nextTokenBefore.add(i))).to.equal(await random.getAddress()); 
       } else {
-        expect(await nftContract.owners(nextTokenBefore.add(i))).to.equal(ZERO_ADDRESS); 
+        expect(await nftContract.ownerOf(nextTokenBefore.add(i))).to.equal(await random.getAddress()); 
       }
     }
 
@@ -626,7 +628,7 @@ describe('ERC721S BURNS', async function () {
     // ownerOf reverts for burned token
     await expect(
       nftContract.ownerOf(randomTokenId),
-    ).to.be.revertedWith("NOT_MINTED_YET_OR_BURNED");
+    ).to.be.revertedWith("ERC721S: Token does not exist");
 
     for (let i=startIndex; i.lt(await nftContract.nextTokenIndex()); i=i.add(1)) {
       if (i.toNumber() != randomTokenId) {
@@ -678,7 +680,7 @@ describe('ERC721S BURNS', async function () {
     // ownerOf reverts for burned token
     await expect(
       nftContract.ownerOf(randomTokenId),
-    ).to.be.revertedWith("NOT_MINTED_YET_OR_BURNED");
+    ).to.be.revertedWith("ERC721S: Token does not exist");
 
     for (let i=startIndex; i.lt(await nftContract.nextTokenIndex()); i=i.add(1)) {
       if (i.toNumber() != randomTokenId) {
@@ -723,7 +725,7 @@ describe('ERC721S BURNS', async function () {
     // ownerOf reverts for burned token
     await expect(
       nftContract.ownerOf(randomTokenId),
-    ).to.be.revertedWith("NOT_MINTED_YET_OR_BURNED");
+    ).to.be.revertedWith("ERC721S: Token does not exist");
 
     let tx_tr = await nftContract.connect(holder).transferFrom(await holder.getAddress(), await random2.getAddress(), randomTokenId.sub(1));
     await tx_tr.wait();
@@ -731,13 +733,20 @@ describe('ERC721S BURNS', async function () {
     for (let i=startIndex; i.lt(await nftContract.nextTokenIndex()); i=i.add(1)) {
      
       if (i.toNumber() != randomTokenId && i.toNumber() != randomTokenId.sub(1)) {
-        //console.log('check2');
+       // console.log('check2');
         expect(await nftContract.ownerOf(i)).to.equal(await holder.getAddress());
       }
       if (i.eq(randomTokenId.sub(1))){
-        //console.log('check3');
+      //  console.log('check3');
         expect(await nftContract.ownerOf(i)).to.equal(await random2.getAddress());
       }
+      if (i.eq(randomTokenId)){
+       // console.log('burned');
+        await expect(
+          nftContract.ownerOf(randomTokenId),
+        ).to.be.revertedWith("ERC721S: Token does not exist");
+      }
+
       //console.log("tb ", await nftContract.owners(i) , ". Burn: " , await nftContract.isBurned(i));
     }
   });
@@ -760,7 +769,7 @@ describe('ERC721S BURNS', async function () {
       // ownerOf reverts for burned token
       await expect(
         nftContract.ownerOf(randomTokenId),
-      ).to.be.revertedWith("NOT_MINTED_YET_OR_BURNED");
+      ).to.be.revertedWith("ERC721S: Token does not exist");
   
       let tx_b2 = await nftContract.connect(holder).burn(randomTokenId.sub(1));
       await tx_b2.wait();
@@ -794,7 +803,7 @@ describe('ERC721S BURNS', async function () {
     // ownerOf reverts for burned token
     await expect(
       nftContract.ownerOf(randomTokenId),
-    ).to.be.revertedWith("NOT_MINTED_YET_OR_BURNED");
+    ).to.be.revertedWith("ERC721S: Token does not exist");
 
     await expect(
       nftContract.connect(holder).transferFrom(await holder.getAddress(), await random2.getAddress(), randomTokenId),
@@ -819,7 +828,7 @@ describe('ERC721S BURNS', async function () {
     // ownerOf reverts for burned token
     await expect(
       nftContract.ownerOf(lastExisting),
-    ).to.be.revertedWith("NOT_MINTED_YET_OR_BURNED");
+    ).to.be.revertedWith("ERC721S: Token does not exist");
 
     let mintQty = 5;
     let txPrelMint2 = await nftContract.connect(random).mint(await random.getAddress(), mintQty);
@@ -869,11 +878,9 @@ describe('ERC721S BURNS', async function () {
 
     await expect(
       nftContract.connect(holder).burn(randomTokenId),
-    ).to.be.revertedWith("LOCKED");
+    ).to.be.revertedWith('Lockable: token is locked');
 
   });
-
-  // Can't burn locked token!
 
 
   });
@@ -902,6 +909,18 @@ describe('ERC721S BURNS', async function () {
         expect(await nftContract.getLocked(randomTokenId)).to.be.equal(await unlocker.getAddress());
       });
 
+      it('Owner can not lock his already locked token', async function () {
+        let minted = (await nftContract.totalMinted());
+        let startIndex = (await nftContract.nextTokenIndex()).sub(minted);
+        let randomTokenId = startIndex.add(Math.floor(Math.random() * minted));
+
+        await nftContract.connect(holder).lock(await unlocker.getAddress(), randomTokenId);
+
+        await expect(
+          nftContract.connect(holder).lock(await unlocker.getAddress(), randomTokenId),
+        ).to.be.revertedWith('Locking: Token is already locked');
+      });
+
       it('Non Owner can not lock token', async function () {
         let minted = (await nftContract.totalMinted());
         let startIndex = (await nftContract.nextTokenIndex()).sub(minted);
@@ -909,7 +928,7 @@ describe('ERC721S BURNS', async function () {
 
         await expect(
           nftContract.connect(random).lock(await unlocker.getAddress(), randomTokenId),
-        ).to.be.revertedWith('NOT_AUTHORIZED');
+        ).to.be.revertedWith('Locking: not auhorized to lock');
       });
 
       it('Owner can not approve locked token', async function () {
@@ -941,7 +960,7 @@ describe('ERC721S BURNS', async function () {
         //check that before approval was not able to lock
         await expect(
           nftContract.connect(operator).lock(await unlocker.getAddress(), randomTokenId)
-        ).to.be.revertedWith('NOT_AUTHORIZED');
+        ).to.be.revertedWith('Locking: not auhorized to lock');
 
         await nftContract.connect(holder).setApprovalForAll(await operator.getAddress(), true);
         await nftContract.connect(operator).lock(await unlocker.getAddress(), randomTokenId);
@@ -958,7 +977,7 @@ describe('ERC721S BURNS', async function () {
 
         await expect(
           nftContract.connect(holder).unlock(randomTokenId),
-        ).to.be.revertedWith('NOT_UNLOCKER');
+        ).to.be.revertedWith('Locking: Not allowed to unlock');
       });
 
       it('Unlocker can unlock', async function () {
@@ -984,7 +1003,7 @@ describe('ERC721S BURNS', async function () {
 
         await expect(
           nftContract.connect(holder).transferFrom(await holder.getAddress(), await random2.getAddress(), randomTokenId),
-        ).to.be.revertedWith('LOCKED');
+        ).to.be.revertedWith('Lockable: token is locked');
       });
 
       it('Unlocker can transfer locked token', async function () {

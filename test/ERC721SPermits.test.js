@@ -110,12 +110,6 @@ async function signPermitAll(operator, nonce, deadline, signer) {
     it('deploys with correct base URI', async function () {
       const mintQty = 3;
       await nftContract.connect(random).mint(await random.getAddress(), mintQty);
-      /*
-      console.log(await nftContract.nextTokenIndex());
-      for (let i =0; i<await nftContract.nextTokenIndex(); i++) {
-        console.log(await nftContract.owners(i));
-      }
-      */
       expect(await nftContract.tokenURI((await nftContract.nextTokenIndex()).sub(1))).to.include(mybase);      
     });
     it('deploys with 0 tokens', async function () {

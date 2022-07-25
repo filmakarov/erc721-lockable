@@ -6,7 +6,7 @@ import '../IERC721Lockable.sol';
 import '@openzeppelin/contracts/utils/introspection/ERC165.sol';
 
 
-/// @title Lockable Extension fro ERC721A
+/// @title Lockable Extension for ERC721A by ChiruLabs
 /// @dev Check the repo and readme at https://github.com/filmakarov/erc721s 
 
 abstract contract ERC721ALockable is ERC721A, IERC721Lockable {
@@ -20,7 +20,39 @@ abstract contract ERC721ALockable is ERC721A, IERC721Lockable {
     /*///////////////////////////////////////////////////////////////
                               LOCKABLE LOGIC
     //////////////////////////////////////////////////////////////*/
-    
+
+    /**
+     * @dev Public function to lock the token. Verifies if the msg.sender is the owner
+     *      or approved party.
+     */
+
+    function lock(address unlocker, uint256 id) public virtual {
+        address tokenOwner = ownerOf(id);
+        require(msg.sender == tokenOwner || isApprovedForAll(tokenOwner, msg.sender)
+        , "NOT_AUTHORIZED");
+        require(unlockers[id] == address(0), "ALREADY_LOCKED"); 
+        unlockers[id] = unlocker;
+        super.approve(unlocker, id); //approve unlocker, so unlocker will be able to transfer
+    }
+
+    /**
+     * @dev Public function to unlock the token. Only the unlocker (stated at the time of locking) can unlock
+     */
+    function unlock(uint256 id) public virtual {
+        require(msg.sender == unlockers[id], "NOT_UNLOCKER");
+        unlockers[id] = address(0);
+    }
+
+    /**
+     * @dev Returns the unlocker for the tokenId
+     *      address(0) means token is not locked
+     *      reverts if token does not exist
+     */
+    function getLocked(uint256 tokenId) public virtual view returns (address) {
+        require(_exists(tokenId), "Lockable: locking query for nonexistent token");
+        return unlockers[tokenId];
+    }
+
     /**
      * @dev Locks the token
      */
@@ -35,30 +67,13 @@ abstract contract ERC721ALockable is ERC721A, IERC721Lockable {
         unlockers[id] = address(0);
     }
 
-    /**
-     * @dev Public function to lock the token. Verifies if the msg.sender is the owner
-     *      or approved party.
-     */
+    /*///////////////////////////////////////////////////////////////
+                              OVERRIDES
+    //////////////////////////////////////////////////////////////*/
 
-    function lock(address unlocker, uint256 id) public virtual {
-        address tokenOwner = ownerOf(id);
-        require(msg.sender == tokenOwner || isApprovedForAll(tokenOwner, msg.sender)
-        , "NOT_AUTHORIZED");
-        require(unlockers[id] == address(0), "ALREADY_LOCKED"); 
-        unlockers[id] = unlocker;
-        super.approve(unlocker, id);
-    }
-
-    /**
-     * @dev Public function to unlock the token. Only the unlocker (stated at the time of locking) can unlock
-     */
-    function unlock(uint256 id) public virtual {
-        require(msg.sender == unlockers[id], "NOT_UNLOCKER");
-        _unlock(id);
-    }
-
-    function getLocked(uint256 tokenId) public virtual view returns (address) {
-        return unlockers[tokenId];
+    function approve(address to, uint256 tokenId) public virtual override {
+        require (getLocked(tokenId) == address(0), "Can not approve locked token");
+        super.approve(to, tokenId);
     }
 
     function _beforeTokenTransfers(
@@ -73,26 +88,7 @@ abstract contract ERC721ALockable is ERC721A, IERC721Lockable {
             require(getLocked(startTokenId) == address(0) || msg.sender == getLocked(startTokenId), "LOCKED");
         }
     }
-
-/*
-    // override getApproved
-    // Unlocker of the token is always approved thus able to transfer this token
-    function getApproved(uint256 tokenId) public view virtual override returns (address) {
-        address unlocker = getLocked(tokenId);
-        if (msg.sender == unlocker) {
-            return unlocker;
-        } else {
-            return super.getApproved(tokenId);
-        }
-    } 
-*/
-
-    function approve(address to, uint256 tokenId) public virtual override {
-        require (getLocked(tokenId) == address(0), "Can not approve locked token");
-        super.approve(to, tokenId);
-    }
     
-
     function _afterTokenTransfers(
         address from,
         address to,

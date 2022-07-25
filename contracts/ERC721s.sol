@@ -3,11 +3,12 @@ pragma solidity >=0.8.0;
 
 /// @title ERC721s
 /// @notice Improvement to ERC721 standard, that introduces lockable NFTs. 
-/// @notice Based on Solmate (https://github.com/Rari-Capital/solmate/blob/main/src/tokens/ERC721.sol)
+///         Inspiration: ERC721A by Chiru Labs, Solmate by Rari Capital
 /// @author filio.eth (https://twitter.com/filmakarov)
 /// @dev Check the repo and readme at https://github.com/filmakarov/erc721s 
 
 abstract contract ERC721S {
+
     /*///////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -23,7 +24,6 @@ abstract contract ERC721S {
     //////////////////////////////////////////////////////////////*/
 
     string public name;
-
     string public symbol;
 
     function tokenURI(uint256 id) public view virtual returns (string memory);
@@ -33,19 +33,14 @@ abstract contract ERC721S {
     //////////////////////////////////////////////////////////////*/
 
     uint256 public nextTokenIndex;
-    mapping(uint256 => address) public owners;
+    mapping(uint256 => uint256) internal _packedOwnerships;
     mapping(uint256 => address) internal _tokenApprovals;
     mapping(address => mapping(address => bool)) internal _operatorApprovals;
+    mapping(address => uint256) internal _balanceOf;
     mapping(uint256 => bool) public isBurned;
     uint256 public burnedCounter;
 
-    mapping(address => uint256) internal _balanceOf;
-
-    function balanceOf(address owner) public view virtual returns (uint256) {
-        require(owner != address(0), "ZERO_ADDRESS");
-
-        return _balanceOf[owner];
-    }
+    uint256 private constant ADDRESS_BITMASK = (1 << 160) - 1;
 
     /*///////////////////////////////////////////////////////////////
                               CONSTRUCTOR
@@ -58,12 +53,12 @@ abstract contract ERC721S {
     }
 
     /*///////////////////////////////////////////////////////////////
-                              ERC721 LOGIC
+                              APPROVALS LOGIC
     //////////////////////////////////////////////////////////////*/
 
     function approve(address spender, uint256 id) public virtual {
         address owner = ownerOf(id);
-        require(msg.sender == owner || _operatorApprovals[owner][msg.sender], "NOT_AUTHORIZED");
+        require(msg.sender == owner || _operatorApprovals[owner][msg.sender], "ERC721S: Not authorized to approve");
         _tokenApprovals[id] = spender;
         emit Approval(owner, spender, id);
     }
@@ -83,21 +78,27 @@ abstract contract ERC721S {
         return _operatorApprovals[owner][operator];
     }
 
+    /*///////////////////////////////////////////////////////////////
+                              TRANSFERS LOGIC
+    //////////////////////////////////////////////////////////////*/
+
     function transferFrom(
         address from,
         address to,
         uint256 id
     ) public virtual {
+
+        uint256 prevOwnership = _packedOwnershipOf(id);
         
-        require(from == ownerOf(id), "WRONG_FROM");
-        require(to != address(0), "INVALID_RECIPIENT");
+        require(from == address(uint160(prevOwnership)), "ERC721S: From is not the owner");
+        require(to != address(0), "ERC721S: Can not transfer to 0 address");
 
         // msg.sender should be authorized to transfer
         // i.e. msg.sender should be owner, approved or unlocker
         require(
             msg.sender == from || 
             msg.sender == getApproved(id) || isApprovedForAll(from, msg.sender), 
-            "NOT_AUTHORIZED"
+            "ERC721S: Not authorized to transfer"
         );
 
         _beforeTokenTransfers(from, to, id, 1);
@@ -109,21 +110,24 @@ abstract contract ERC721S {
             _balanceOf[to]++;
         }
 
-        owners[id] = to;
+        _packedOwnerships[id] = _packOwnership(to);
+
         uint256 nextId = id+1;
 
-        //to prevent new owner to become the owner of next tokens in the batch 
-        if (owners[nextId] == address(0)) {  //if that was not the last token of batch
-            if (_exists(nextId)) { //and the next token exists (was minted) and has not been burned
-                owners[nextId] = from; //explicitly set the owner for that token
+        if (_exists(nextId)) {
+            // _packedOwnerships[nextId] == 0 is true only if the token ownership has not been initialized
+            // burned token has non-zero ownership and if it was burned, the next token after burned one
+            // was initialized 
+            if (_packedOwnerships[nextId] == 0) {
+                _packedOwnerships[nextId] = prevOwnership;
             }
-        }
+        }     
 
         delete _tokenApprovals[id];
 
         emit Transfer(from, to, id);
         _afterTokenTransfers(from, to, id, 1);
-    }
+    } 
 
     function safeTransferFrom(
         address from,
@@ -136,7 +140,7 @@ abstract contract ERC721S {
             to.code.length == 0 ||
                 ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, "") ==
                 ERC721TokenReceiver.onERC721Received.selector,
-            "UNSAFE_RECIPIENT"
+            "ERC721S: Transfer to unsafe recepient"
         );
     }
 
@@ -152,12 +156,55 @@ abstract contract ERC721S {
             to.code.length == 0 ||
                 ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, data) ==
                 ERC721TokenReceiver.onERC721Received.selector,
-            "UNSAFE_RECIPIENT"
+            "ERC721S: Transfer to unsafe recepient"
         );
     }
 
+    /*///////////////////////////////////////////////////////////////
+                              OWNERSHIPS
+    //////////////////////////////////////////////////////////////*/
+
     function _exists(uint256 id) internal view returns (bool) {
         return (id < nextTokenIndex && !isBurned[id] && id >= _startTokenIndex());
+    }
+
+    function ownerOf(uint256 id) public view returns (address) {
+        return address(uint160( _packedOwnershipOf(id) ));
+    }
+
+    function _packedOwnershipOf(uint256 id) internal view returns (uint256) {
+        if (id >= _startTokenIndex()) {
+            if (id<nextTokenIndex) {
+                if (!isBurned[id]) { 
+                    uint256 curr = id;
+                    unchecked {
+                        uint256 packed = _packedOwnerships[curr];
+                        
+                        while (packed == 0) {
+                            packed = _packedOwnerships[--curr];
+                        }
+                        return packed;
+                    }
+                }
+            }
+        }
+        revert('ERC721S: Token does not exist');
+    }
+
+    function _packOwnership(address owner) internal virtual returns (uint256 result) {
+        assembly {
+            owner := and(owner, ADDRESS_BITMASK)
+            result := or(owner, shl(160, timestamp()))
+        }
+    }
+
+    /*///////////////////////////////////////////////////////////////
+                              Views
+    //////////////////////////////////////////////////////////////*/
+
+    function balanceOf(address owner) public view virtual returns (uint256) {
+        require(owner != address(0), "ERC721S: BalanceOf query for zero address");
+        return _balanceOf[owner];
     }
 
     function totalSupply() public view returns (uint256) {
@@ -169,36 +216,7 @@ abstract contract ERC721S {
     }
 
     /*///////////////////////////////////////////////////////////////
-                              CUSTOM OwnerOf FOR BATCH MINTING
-    //////////////////////////////////////////////////////////////*/
-
-    function ownerOf(uint256 id) public view returns (address) {
-        require(_exists(id), "NOT_MINTED_YET_OR_BURNED");
-
-        unchecked {
-            for (uint256 curr = id; curr >=0; curr--) {
-                if (owners[curr] != address(0)) {
-                    return owners[curr];
-                }
-            }
-        }
-
-        revert('ERC721A: unable to determine the owner of token');
-    }
-
-    /*///////////////////////////////////////////////////////////////
-                              ERC165 LOGIC
-    //////////////////////////////////////////////////////////////*/
-
-    function supportsInterface(bytes4 interfaceId) public view virtual returns (bool) {
-        return
-            interfaceId == 0x01ffc9a7 || // ERC165 Interface ID for ERC165
-            interfaceId == 0x80ac58cd || // ERC165 Interface ID for ERC721
-            interfaceId == 0x5b5e139f; // ERC165 Interface ID for ERC721Metadata
-    }
-
-    /*///////////////////////////////////////////////////////////////
-                       INTERNAL MINT/BURN LOGIC
+                       INTERNAL MINT LOGIC
     //////////////////////////////////////////////////////////////*/
 
     /**
@@ -211,15 +229,15 @@ abstract contract ERC721S {
     }
 
     function _mint(address to, uint256 qty) internal virtual {
-        require(to != address(0), "INVALID_RECIPIENT");
-        require(qty != 0, "CAN_NOT_MINT_0");
+        require(to != address(0), "ERC721S: Can not mint to 0 address");
+        require(qty != 0, "ERC721S: Can not mint 0 tokens");
 
         uint256 startTokenIndex = nextTokenIndex;
 
         _beforeTokenTransfers(address(0), to, startTokenIndex, qty);
 
         // put just the first owner in the batch
-        owners[nextTokenIndex]=to;
+        _packedOwnerships[nextTokenIndex] = _packOwnership(to);
 
         // Counter overflow is incredibly unrealistic here.
         unchecked {
@@ -242,38 +260,6 @@ abstract contract ERC721S {
         
     }
 
-    function _burn(uint256 id) internal virtual {
-        address owner = ownerOf(id);
-        require(owner != address(0), "NOT_MINTED");
-
-        _beforeTokenTransfers(owner, address(0), id, 1);
-
-        // Ownership check above ensures no underflow.
-        unchecked {
-            _balanceOf[owner]--;
-        }
-        delete owners[id];
-        isBurned[id] = true;
-        burnedCounter++;
-
-        uint256 nextId = id+1;
-        if (owners[nextId] == address(0)) {  //if that was not the last token of batch
-            if (_exists(nextId)) { //and the next token exists (was minted) and has not been burned
-                owners[nextId] = owner; //explicitly set the owner for that token
-            }
-        }
-
-        delete _tokenApprovals[id];
-
-        emit Transfer(owner, address(0), id);
-        _afterTokenTransfers(owner, address(0), id, 1);
-    }
-    
-
-    /*///////////////////////////////////////////////////////////////
-                       INTERNAL SAFE MINT LOGIC
-    //////////////////////////////////////////////////////////////*/
-
     function _safeMint(address to, uint256 qty) internal virtual {
         _mint(to, qty);
         
@@ -281,7 +267,7 @@ abstract contract ERC721S {
             to.code.length == 0 ||
                 ERC721TokenReceiver(to).onERC721Received(msg.sender, address(0), nextTokenIndex-qty, "") ==
                 ERC721TokenReceiver.onERC721Received.selector,
-            "UNSAFE_RECIPIENT"
+            "ERC721S: Mint to unsafe recepient"
         );
     }
 
@@ -296,9 +282,58 @@ abstract contract ERC721S {
             to.code.length == 0 ||
                 ERC721TokenReceiver(to).onERC721Received(msg.sender, address(0), nextTokenIndex-qty, data) ==
                 ERC721TokenReceiver.onERC721Received.selector,
-            "UNSAFE_RECIPIENT"
+            "ERC721S: Mint to unsafe recepient"
         );
     }
+
+    /*///////////////////////////////////////////////////////////////
+                       BURN LOGIC
+    //////////////////////////////////////////////////////////////*/
+
+    function _burn(uint256 id) internal virtual {
+        
+        address owner = ownerOf(id);
+        uint256 prevOwnership = _packedOwnershipOf(id);
+
+        _beforeTokenTransfers(owner, address(0), id, 1);
+
+        // Ownership check above ensures no underflow.
+        unchecked {
+            _balanceOf[owner]--;
+        }
+        
+        _packedOwnerships[id] = _packOwnership(address(0)); // thus we have time of burning the token
+
+        isBurned[id] = true;
+        burnedCounter++;
+
+        uint256 nextId = id+1;
+        if (_packedOwnerships[nextId] == 0) {  //if that was not the last token of batch
+            if (_exists(nextId)) { //and the next token exists (was minted) and has not been burned
+                _packedOwnerships[nextId] = prevOwnership; //explicitly set the owner for that token
+            }
+        }
+        
+        delete _tokenApprovals[id];
+
+        emit Transfer(owner, address(0), id);
+        _afterTokenTransfers(owner, address(0), id, 1);
+    }
+
+    /*///////////////////////////////////////////////////////////////
+                              ERC165 LOGIC
+    //////////////////////////////////////////////////////////////*/
+
+    function supportsInterface(bytes4 interfaceId) public view virtual returns (bool) {
+        return
+            interfaceId == 0x01ffc9a7 || // ERC165 Interface ID for ERC165
+            interfaceId == 0x80ac58cd || // ERC165 Interface ID for ERC721
+            interfaceId == 0x5b5e139f; // ERC165 Interface ID for ERC721Metadata
+    }
+
+    /*///////////////////////////////////////////////////////////////
+                              HOOKS
+    //////////////////////////////////////////////////////////////*/
 
     /**
      * @dev Hook that is called before a set of serially-ordered token IDs
@@ -347,6 +382,10 @@ abstract contract ERC721S {
     ) internal virtual {}
 
 }
+
+/*///////////////////////////////////////////////////////////////
+                              TOKEN RECEIVER
+//////////////////////////////////////////////////////////////*/
 
 /// @notice A generic interface for a contract which properly accepts ERC721 tokens.
 /// @author Solmate (https://github.com/Rari-Capital/solmate/blob/main/src/tokens/ERC721.sol)

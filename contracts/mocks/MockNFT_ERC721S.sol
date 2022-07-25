@@ -87,6 +87,10 @@ using Strings for uint256;
     function unclaimedSupply() public view returns (uint256) {
         return MAX_ITEMS - totalSupply();
     }
+
+    function getTokenTimestamp(uint256 tokenId) public view returns (uint256) {
+        return uint256(_packedOwnerships[tokenId] >> 160);
+    }
         
     /*///////////////////////////////////////////////////////////////
                        BURN

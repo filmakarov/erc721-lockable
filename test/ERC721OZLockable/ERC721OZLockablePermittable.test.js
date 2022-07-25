@@ -128,7 +128,7 @@ async function signPermitAll(operator, nonce, deadline, signer) {
       // Regular permits
       it('Permit issued by a holder for spender works', async function () {
         let randomTokenId = globalStartIndex.add(Math.floor(Math.random() * 10));
-        console.log("tokenId: ", randomTokenId);;
+        //console.log("tokenId: ", randomTokenId);;
         
         const deadline = parseInt(+new Date() / 1000) + 7 * 24 * 60 * 60;
 
