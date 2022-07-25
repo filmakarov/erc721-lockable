@@ -2,7 +2,7 @@
 pragma solidity >=0.8.0;
 
 /// @title ERC721s
-/// @notice Improvement to ERC721 standard, that introduces lockable NFTs. 
+/// @notice Custom ERC721. Batch minting. Timestamps for ownerships. 
 ///         Inspiration: ERC721A by Chiru Labs, Solmate by Rari Capital
 /// @author filio.eth (https://twitter.com/filmakarov)
 /// @dev Check the repo and readme at https://github.com/filmakarov/erc721s 

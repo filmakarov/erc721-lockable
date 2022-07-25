@@ -14,7 +14,7 @@ abstract contract ERC721OZLockable is ERC721, IERC721Lockable {
                             LOCKABLE EXTENSION STORAGE                        
     //////////////////////////////////////////////////////////////*/
 
-    mapping(uint256 => address) public unlockers;
+    mapping(uint256 => address) internal unlockers;
 
     /*///////////////////////////////////////////////////////////////
                               LOCKABLE LOGIC
