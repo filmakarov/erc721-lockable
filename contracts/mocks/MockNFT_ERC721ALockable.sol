@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 import "../ERC721ALockable/ERC721ALockable.sol";
 
-/// @title MockNFT implementing ERC721S with Permits
+/// @title MockNFT implementing ERC721A with Permits
 /// @author of contract Fil Makarov (@filmakarov)
 
 contract MockNFTERC721ALockable is ERC721ALockable, Ownable {  

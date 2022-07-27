@@ -3,8 +3,6 @@ pragma solidity >=0.8.0;
 
 import "erc721a/contracts/ERC721A.sol";
 import '../IERC721Lockable.sol';
-import '@openzeppelin/contracts/utils/introspection/ERC165.sol';
-
 
 /// @title Lockable Extension for ERC721A by ChiruLabs
 /// @dev Check the repo and readme at https://github.com/filmakarov/erc721s 
