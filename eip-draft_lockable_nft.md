@@ -12,11 +12,9 @@ requires: 165, 721
 ---
 
 ## Abstract
-This standard is an extension of [EIP-721](./eip-721.md). It introduces lockable NFTs. The locked asset can be used in any way except selling and/or transferring it. `Owner` or `operator` can lock the token. When a token is being locked, the `unlocker` address (an EOA or a contract) is set. Only `unlocker` is able to `unlock` the token. 
+This standard is an extension of [EIP-721](./eip-721.md). It introduces lockable NFTs. The locked asset can be used in any way except selling and/or transferring it. Owner or operator can lock the token. When a token is being locked, the unlocker address (an EOA or a contract) is set. Only unlocker is able to `unlock` the token. 
 
 ## Motivation
-NFTs took the world by storm. It's probably because non-fungibility as a concept is much easier to intuitively understand, than fungibility, as our world is mostly non-fungible.
-
 With NFTs, digital objects become digital goods. Verifiably ownable, easily tradable, immutably stored on the blockchain. However, the usability of NFT presently is quite limited. Existing use cases often have poor UX as they are inherited from ERC20 (fungible tokens) world.
 
 In DeFi you mostly deal with ERC20 tokens. There is a UX pattern when you lock your tokens on a service smart contract. For example, if you want to borrow some $DAI, you have to provide some $ETH as collateral for a loan. During the loan period $ETH is being locked into the lending service contract. And it's ok for $ETH and other fungible tokens.
@@ -33,16 +31,16 @@ Every use case can (and some of them are already) be implemented one at a time. 
 ## Specification
 The key words “MUST”, “MUST NOT”, “REQUIRED”, “SHALL”, “SHALL NOT”, “SHOULD”, “SHOULD NOT”, “RECOMMENDED”, “MAY”, and “OPTIONAL” in this document are to be interpreted as described in RFC 2119.
 
-`ERC-721` compliant contracts MAY implement this ERC to provide a standard method of locking and unlocking the token at it's current owner address. 
+`ERC-721` compliant contracts MAY implement this ERC to provide standard methods of locking and unlocking the token at it's current owner address. 
 If the token is locked, the `getLocked` function MUST return an address, that is able to unlock the token.
 For the tokens that are not locked the `getLocked` function MUST return `address(0)`.
 The user MAY permanently lock the token by stating a smart-contract that does not implement interface to `unlock` function as unlocker.
 
 When the token is locked, all the [EIP-721](./eip-721.md) transfer functions MUST revert, except the msg.sender for the transfer tx is stated as unlocker for this token.
 When the token is locked, [EIP-721](./eip-721.md) `approve` method MUST revert.
-When the locked token is transferred by an unlocker, the token MUST be unlocked (unlocker set to `address(0)`).
+When the locked token is transferred by an unlocker, the token MUST be unlocked (unlocker set to `address(0)`) after trasnfer.
 
-Marketplaces that aim to support this standard SHOULD implement method to call `getLocked` method to understand if the token is locked or not. Locked tokens SHOULD NOT be available for listings. Locked tokens listings SHOULD hidden.  
+Marketplaces that aim to support this standard SHOULD implement method to call `getLocked` method to understand if the token is locked or not. Locked tokens SHOULD NOT be available for listings. Locked tokens listings SHOULD be hidden.  
 
 ### Contract Interface
 ```solidity
@@ -115,7 +113,7 @@ import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 
 /// @title Lockable Extension for ERC721
 
-abstract contract ERC721OZLockable is ERC721, ILockable {
+abstract contract ERC721Lockable is ERC721, ILockable {
 
     /*///////////////////////////////////////////////////////////////
                             LOCKABLE EXTENSION STORAGE                        
