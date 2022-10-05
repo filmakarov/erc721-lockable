@@ -223,6 +223,8 @@ abstract contract ERC721Lockable is ERC721, ILockable {
 }
 ```
 
+More implementations can be found [here](https://github.com/filmakarov/erc721-lockable).
+
 ## Security Considerations
 The callers of `lock` function should always consider if there's an unlocking function in the contract, that is stated as an unlocker, unless they want to lock the NFT from transfers forever.
 
