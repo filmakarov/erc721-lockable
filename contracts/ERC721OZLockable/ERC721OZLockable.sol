@@ -30,7 +30,7 @@ abstract contract ERC721OZLockable is ERC721, IERC721Lockable {
         , "NOT_AUTHORIZED");
         require(unlockers[id] == address(0), "ALREADY_LOCKED"); 
         unlockers[id] = unlocker;
-        _approve(unlocker, id);
+        _approve(unlocker, id); //approve unlocker, so unlocker will be able to transfer
     }
 
     /**
@@ -91,7 +91,7 @@ abstract contract ERC721OZLockable is ERC721, IERC721Lockable {
         address to,
         uint256 tokenId
     ) internal virtual override {
-        // if it is a Transfer or Burn, we always deal with one token, that is startTokenId
+        // if it is a Transfer or Burn
         if (from != address(0)) { 
             // clear locks
             delete unlockers[tokenId];
